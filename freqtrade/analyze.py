@@ -72,12 +72,14 @@ def populate_buy_trend(dataframe: DataFrame) -> DataFrame:
     """
     dataframe.loc[
         (dataframe['tema'] <= dataframe['blower']) &
-        (dataframe['rsi'] < 37) &
-        (dataframe['fastd'] < 48) &
-        (dataframe['adx'] > 31),
+        (dataframe['rsi'] < 20) &
+        (dataframe['fastd'] < 20) &
+        (dataframe['ao'] < 20) &
+        (dataframe['adx'] > 20),
         'buy'] = 1
 
     return dataframe
+
 
 def populate_sell_trend(dataframe: DataFrame) -> DataFrame:
     """
@@ -86,7 +88,8 @@ def populate_sell_trend(dataframe: DataFrame) -> DataFrame:
     :return: DataFrame with buy column
     """
     dataframe.loc[
-        (crossed_above(dataframe['rsi'], 70)),
+        (crossed_above(dataframe['rsi'], 65)) |
+        (crossed_above(dataframe['fastd'], 85)),
         'sell'] = 1
 
     return dataframe
