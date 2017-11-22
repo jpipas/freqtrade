@@ -49,6 +49,10 @@ def populate_indicators(dataframe: DataFrame) -> DataFrame:
     dataframe['tema'] = ta.TEMA(dataframe, timeperiod=9)
     dataframe['mfi'] = ta.MFI(dataframe)
     dataframe['rsi'] = ta.RSI(dataframe)
+    dataframe['plus_dm'] = ta.PLUS_DM(dataframe)
+    dataframe['plus_di'] = ta.PLUS_DI(dataframe)
+    dataframe['minus_dm'] = ta.MINUS_DM(dataframe)
+    dataframe['minus_di'] = ta.MINUS_DI(dataframe)
     dataframe['ema5'] = ta.EMA(dataframe, timeperiod=5)
     dataframe['ema10'] = ta.EMA(dataframe, timeperiod=10)
     dataframe['ema50'] = ta.EMA(dataframe, timeperiod=50)
@@ -71,11 +75,11 @@ def populate_buy_trend(dataframe: DataFrame) -> DataFrame:
     :return: DataFrame with buy column
     """
     dataframe.loc[
-        (dataframe['tema'] <= dataframe['blower']) &
-        (dataframe['rsi'] < 20) &
-        (dataframe['fastd'] < 20) &
+        (dataframe['rsi'] < 25) &
+        (dataframe['fastd'] < 26) &
         (dataframe['ao'] < 20) &
-        (dataframe['adx'] > 20),
+        (dataframe['adx'] > 20) &
+        (dataframe['minus_dm'] > 0),
         'buy'] = 1
 
     return dataframe
@@ -88,8 +92,14 @@ def populate_sell_trend(dataframe: DataFrame) -> DataFrame:
     :return: DataFrame with buy column
     """
     dataframe.loc[
-        (crossed_above(dataframe['rsi'], 65)) |
-        (crossed_above(dataframe['fastd'], 85)),
+        (
+            (crossed_above(dataframe['rsi'], 84)) |
+            (crossed_above(dataframe['fastd'], 88)) |
+            (crossed_above(dataframe['ao'], 84))
+        ) &
+        # (dataframe['minus_dm'] > 0) &
+        (dataframe['plus_di'] > 0) &
+        (dataframe['adx'] < 10),
         'sell'] = 1
 
     return dataframe
