@@ -1,5 +1,6 @@
 # pragma pylint: disable=missing-docstring
 import json
+
 import arrow
 import pytest
 from pandas import DataFrame
