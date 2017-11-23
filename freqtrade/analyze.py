@@ -65,6 +65,10 @@ def populate_indicators(dataframe: DataFrame) -> DataFrame:
     hilbert = ta.HT_SINE(dataframe)
     dataframe['htsine'] = hilbert['sine']
     dataframe['htleadsine'] = hilbert['leadsine']
+    dataframe['plus_dm'] = ta.PLUS_DM(dataframe)
+    dataframe['plus_di'] = ta.PLUS_DI(dataframe)
+    dataframe['minus_dm'] = ta.MINUS_DM(dataframe)
+    dataframe['minus_di'] = ta.MINUS_DI(dataframe)
     return dataframe
 
 
@@ -75,12 +79,25 @@ def populate_buy_trend(dataframe: DataFrame) -> DataFrame:
     :return: DataFrame with buy column
     """
     dataframe.loc[
+# <<<<<<< HEAD
         (dataframe['rsi'] < 30) &
-        (dataframe['fastd'] < 24) &
+        (dataframe['fastd'] < 29) &
         (dataframe['ao'] < 40) &
         (dataframe['adx'] > 28) &
         (dataframe['minus_dm'] > 0) &
-        (dataframe['plus_di'] > 0),
+        (dataframe['plus_di'] > 0.3),
+# =======
+#         (
+#             (dataframe['rsi'] < 32) &
+#             (dataframe['fastd'] < 28) &
+#             (dataframe['adx'] > 28) &
+#             (dataframe['plus_di'] > 0.5)
+#         ) |
+#         (
+#             (dataframe['adx'] > 65) &
+#             (dataframe['plus_di'] > 0.5)
+#         ),
+# >>>>>>> upstream/develop
         'buy'] = 1
 
     return dataframe
@@ -94,16 +111,29 @@ def populate_sell_trend(dataframe: DataFrame) -> DataFrame:
     """
     dataframe.loc[
         (
-            (crossed_above(dataframe['rsi'], 85)) |
-            (crossed_above(dataframe['fastd'], 80)) |
-            (crossed_above(dataframe['ao'], 82))
-        ) &
-        (dataframe['macd'] < 0) &
-        (dataframe['minus_dm'] > 0) &
-        (dataframe['plus_di'] > 0) &
-        (dataframe['adx'] < 1),
+# <<<<<<< HEAD
+#             (crossed_above(dataframe['rsi'], 85)) |
+#             (crossed_above(dataframe['fastd'], 80)) |
+#             (crossed_above(dataframe['ao'], 82))
+#         ) &
+#         (dataframe['macd'] < 0) &
+#         (dataframe['minus_dm'] > 0) &
+#         (dataframe['plus_di'] > 0) &
+#         (dataframe['adx'] < 1),
+# =======
+            (
+                (crossed_above(dataframe['rsi'], 76)) |
+                (crossed_above(dataframe['fastd'], 78))
+            ) &
+            (dataframe['adx'] > 10) &
+            (dataframe['minus_di'] > 0)
+        ) |
+        (
+            (dataframe['adx'] > 70) &
+            (dataframe['minus_di'] > 0.5)
+        ),
+# >>>>>>> upstream/develop
         'sell'] = 1
-
     return dataframe
 
 
