@@ -80,12 +80,11 @@ def populate_buy_trend(dataframe: DataFrame) -> DataFrame:
     """
     dataframe.loc[
 # <<<<<<< HEAD
-        (dataframe['rsi'] < 30) &
-        (dataframe['fastd'] < 29) &
-        (dataframe['ao'] < 40) &
+        (dataframe['rsi'] < 31) &
+        (dataframe['fastd'] < 28) &
+        # (dataframe['ao'] < 40) &
         (dataframe['adx'] > 28) &
-        (dataframe['minus_dm'] > 0) &
-        (dataframe['plus_di'] > 0.3),
+        (dataframe['plus_di'] > 0.5),
 # =======
 #         (
 #             (dataframe['rsi'] < 32) &
@@ -122,14 +121,15 @@ def populate_sell_trend(dataframe: DataFrame) -> DataFrame:
 #         (dataframe['adx'] < 1),
 # =======
             (
-                (crossed_above(dataframe['rsi'], 76)) |
-                (crossed_above(dataframe['fastd'], 78))
+                (crossed_above(dataframe['rsi'], 85)) |
+                (crossed_above(dataframe['fastd'], 81)) |
+                (crossed_above(dataframe['ao'], 80))
             ) &
             (dataframe['adx'] > 10) &
             (dataframe['minus_di'] > 0)
         ) |
         (
-            (dataframe['adx'] > 70) &
+            (dataframe['adx'] > 71) &
             (dataframe['minus_di'] > 0.5)
         ),
 # >>>>>>> upstream/develop
