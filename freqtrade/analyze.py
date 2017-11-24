@@ -8,11 +8,13 @@ from enum import Enum
 import arrow
 import talib.abstract as ta
 from pandas import DataFrame, to_datetime
+import numpy
 
 from freqtrade.exchange import get_ticker_history
 from freqtrade.vendor.qtpylib.indicators import awesome_oscillator, crossed_above
 
 logger = logging.getLogger(__name__)
+
 
 class SignalType(Enum):
     """ Enum to distinguish between buy and sell signals """
@@ -57,6 +59,7 @@ def populate_indicators(dataframe: DataFrame) -> DataFrame:
     dataframe['ema10'] = ta.EMA(dataframe, timeperiod=10)
     dataframe['ema50'] = ta.EMA(dataframe, timeperiod=50)
     dataframe['ema100'] = ta.EMA(dataframe, timeperiod=100)
+    dataframe['ema200'] = ta.EMA(dataframe, timeperiod=200)
     dataframe['ao'] = awesome_oscillator(dataframe)
     macd = ta.MACD(dataframe)
     dataframe['macd'] = macd['macd']
@@ -69,8 +72,9 @@ def populate_indicators(dataframe: DataFrame) -> DataFrame:
     dataframe['plus_di'] = ta.PLUS_DI(dataframe)
     dataframe['minus_dm'] = ta.MINUS_DM(dataframe)
     dataframe['minus_di'] = ta.MINUS_DI(dataframe)
+    rsi = .1 * (dataframe['rsi'] - 50)
+    dataframe['fishrsi'] = (numpy.exp(2 * rsi) - 1) / (numpy.exp(2 * rsi) + 1)
     return dataframe
-
 
 def populate_buy_trend(dataframe: DataFrame) -> DataFrame:
     """
@@ -79,13 +83,15 @@ def populate_buy_trend(dataframe: DataFrame) -> DataFrame:
     :return: DataFrame with buy column
     """
     dataframe.loc[
-# <<<<<<< HEAD
-        (dataframe['rsi'] < 31) &
-        (dataframe['fastd'] < 28) &
-        # (dataframe['ao'] < 40) &
-        (dataframe['adx'] > 28) &
-        (dataframe['plus_di'] > 0.5),
-# =======
+#   v1
+#         (dataframe['rsi'] < 31) &
+#         (dataframe['fastd'] < 28) &
+#         # (dataframe['ao'] < 40) &
+#         (dataframe['adx'] > 28) &
+#         (dataframe['ema50'] > dataframe['ema200']) &
+#         (dataframe['plus_di'] > 0.5),
+
+#   v2
 #         (
 #             (dataframe['rsi'] < 32) &
 #             (dataframe['fastd'] < 28) &
@@ -96,9 +102,14 @@ def populate_buy_trend(dataframe: DataFrame) -> DataFrame:
 #             (dataframe['adx'] > 65) &
 #             (dataframe['plus_di'] > 0.5)
 #         ),
-# >>>>>>> upstream/develop
-        'buy'] = 1
+#         'buy'] = 1
 
+        (dataframe['close'] < dataframe['sma']) &
+        (dataframe['fastd'] > dataframe['fastk']) &
+        (dataframe['rsi'] > 0) &
+        (dataframe['fastd'] > 0) &
+        (dataframe['fishrsi'] < -0.94),
+        'buy'] = 1
     return dataframe
 
 
@@ -109,30 +120,30 @@ def populate_sell_trend(dataframe: DataFrame) -> DataFrame:
     :return: DataFrame with buy column
     """
     dataframe.loc[
+        # v1
+        # (
+        #   (crossed_above(dataframe['rsi'], 85)) |
+        #   (crossed_above(dataframe['fastd'], 80)) |
+        #   (crossed_above(dataframe['ao'], 82))
+        # ) &
+        #   (dataframe['macd'] < 0) &
+        #   (dataframe['minus_dm'] > 0) &
+        #   (dataframe['plus_di'] > 0) &
+        #   (dataframe['adx'] < 1),
+
+        # v2
         (
-# <<<<<<< HEAD
-#             (crossed_above(dataframe['rsi'], 85)) |
-#             (crossed_above(dataframe['fastd'], 80)) |
-#             (crossed_above(dataframe['ao'], 82))
-#         ) &
-#         (dataframe['macd'] < 0) &
-#         (dataframe['minus_dm'] > 0) &
-#         (dataframe['plus_di'] > 0) &
-#         (dataframe['adx'] < 1),
-# =======
-            (
-                (crossed_above(dataframe['rsi'], 85)) |
-                (crossed_above(dataframe['fastd'], 81)) |
-                (crossed_above(dataframe['ao'], 80))
-            ) &
-            (dataframe['adx'] > 10) &
-            (dataframe['minus_di'] > 0)
+            (dataframe['sar'] > dataframe['close']) &
+            (dataframe['fishrsi'] > 0.2)
         ) |
         (
             (dataframe['adx'] > 71) &
             (dataframe['minus_di'] > 0.5)
         ),
-# >>>>>>> upstream/develop
+
+        #  v3
+        # (dataframe['sar'] > dataframe['close']) &
+        # (dataframe['fishrsi'] > 0.2),
         'sell'] = 1
     return dataframe
 
