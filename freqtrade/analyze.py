@@ -108,7 +108,7 @@ def populate_buy_trend(dataframe: DataFrame) -> DataFrame:
         (dataframe['fastd'] > dataframe['fastk']) &
         (dataframe['rsi'] > 0) &
         (dataframe['fastd'] > 0) &
-        (dataframe['fishrsi'] < -0.94),
+        (dataframe['fishrsi'] < -0.54),
         'buy'] = 1
     return dataframe
 

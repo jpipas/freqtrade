@@ -20,7 +20,7 @@ logging.disable(logging.DEBUG)  # disable debug logs that slow backtesting a lot
 
 # set TARGET_TRADES to suit your number concurrent trades so its realistic to 20days of data
 TARGET_TRADES = 1100
-TOTAL_TRIES = 4
+TOTAL_TRIES = 200
 # pylint: disable=C0103
 current_tries = 0
 
@@ -31,33 +31,38 @@ def buy_strategy_generator(params):
         # GUARDS AND TRENDS
         if params['uptrend_long_ema']['enabled']:
             conditions.append(dataframe['ema50'] > dataframe['ema100'])
-        if params['uptrend_short_ema']['enabled']:
-            conditions.append(dataframe['ema5'] > dataframe['ema10'])
-        if params['mfi']['enabled']:
-            conditions.append(dataframe['mfi'] < params['mfi']['value'])
+        # if params['uptrend_short_ema']['enabled']:
+        #     conditions.append(dataframe['ema5'] > dataframe['ema10'])
+        # if params['mfi']['enabled']:
+        #     conditions.append(dataframe['mfi'] < params['mfi']['value'])
         if params['fastd']['enabled']:
             conditions.append(dataframe['fastd'] < params['fastd']['value'])
-        if params['adx']['enabled']:
-            conditions.append(dataframe['adx'] > params['adx']['value'])
+        # if params['adx']['enabled']:
+        #     conditions.append(dataframe['adx'] > params['adx']['value'])
         if params['rsi']['enabled']:
             conditions.append(dataframe['rsi'] < params['rsi']['value'])
-        if params['over_sar']['enabled']:
-            conditions.append(dataframe['close'] > dataframe['sar'])
+        # if params['over_sar']['enabled']:
+        #     conditions.append(dataframe['close'] > dataframe['sar'])
         if params['green_candle']['enabled']:
             conditions.append(dataframe['close'] > dataframe['open'])
-        if params['uptrend_sma']['enabled']:
-            prevsma = dataframe['sma'].shift(1)
-            conditions.append(dataframe['sma'] > prevsma)
+        # if params['below_sma']['enabled']:
+        #     conditions.append(dataframe['close'] < dataframe['sma'])
+        # if params['uptrend_sma']['enabled']:
+        #     prevsma = dataframe['sma'].shift(1)
+        #     conditions.append(dataframe['sma'] > prevsma)
+        if params['fishrsi']['enabled']:
+            conditions.append(dataframe['fishrsi'] < params['fishrsi']['value'])
 
         # TRIGGERS
         triggers = {
-            'lower_bb': dataframe['tema'] <= dataframe['blower'],
-            'faststoch10': (crossed_above(dataframe['fastd'], 10.0)),
+            # 'lower_bb': dataframe['tema'] <= dataframe['blower'],
+            # 'faststoch10': (crossed_above(dataframe['fastd'], 10.0)),
             'ao_cross_zero': (crossed_above(dataframe['ao'], 0.0)),
             'ema5_cross_ema10': (crossed_above(dataframe['ema5'], dataframe['ema10'])),
             'macd_cross_signal': (crossed_above(dataframe['macd'], dataframe['macdsignal'])),
             'sar_reversal': (crossed_above(dataframe['close'], dataframe['sar'])),
-            'stochf_cross': (crossed_above(dataframe['fastk'], dataframe['fastd'])),
+            # 'stochf_cross': (crossed_above(dataframe['fastk'], dataframe['fastd'])),
+            # 'sma_cross': (crossed_above(dataframe['sma'], dataframe['close'])),
             'ht_sine': (crossed_above(dataframe['htleadsine'], dataframe['htsine'])),
         }
         conditions.append(triggers.get(params['trigger']['type']))
@@ -76,7 +81,7 @@ def test_hyperopt(backtest_conf, mocker):
 
     backdata = load_backtesting_data()
     processed = preprocess(backdata)
-    exchange._API = Bittrex({'key': '', 'secret': ''})
+    exchange._API = Bittrex({'key': '6a4d4a295cc440649303c9c923c94237', 'secret': '60740f0e82694e6895bf7df5e3928bce'})
 
     def optimizer(params):
         mocked_buy_trend.side_effect = buy_strategy_generator(params)
@@ -139,14 +144,23 @@ def test_hyperopt(backtest_conf, mocker):
             {'enabled': False},
             {'enabled': True}
         ]),
+        'fishrsi': hp.choice('fishrsi', [
+            {'enabled': False},
+            {'enabled': True, 'value': hp.quniform('fishrsi-value', -1.0, 0, 0.01)}
+        ]),
+        'below_sma': hp.choice('below_sma', [
+            {'enabled': False},
+            {'enabled': True}
+        ]),
         'trigger': hp.choice('trigger', [
-            {'type': 'lower_bb'},
-            {'type': 'faststoch10'},
+            # {'type': 'lower_bb'},
+            # {'type': 'faststoch10'},
             {'type': 'ao_cross_zero'},
             {'type': 'ema5_cross_ema10'},
             {'type': 'macd_cross_signal'},
             {'type': 'sar_reversal'},
-            {'type': 'stochf_cross'},
+            # {'type': 'stochf_cross'},
+            # {'type': 'sma_cross'},
             {'type': 'ht_sine'},
         ]),
     }
