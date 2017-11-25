@@ -147,10 +147,10 @@ def build_subcommands(parser: argparse.ArgumentParser) -> None:
         metavar='INT',
     )
     backtest.add_argument(
-        '--limit-max-trades',
+        '--realistic-simulation',
         help='uses max_open_trades from config to simulate real world limitations',
         action='store_true',
-        dest='limit_max_trades',
+        dest='realistic_simulation',
     )
 
 
@@ -167,7 +167,7 @@ def start_backtesting(args) -> None:
         'BACKTEST_LIVE': 'true' if args.live else '',
         'BACKTEST_CONFIG': args.config,
         'BACKTEST_TICKER_INTERVAL': str(args.ticker_interval),
-        'BACKTEST_LIMIT_MAX_TRADES': 'true' if args.limit_max_trades else '',
+        'BACKTEST_REALISTIC_SIMULATION': 'true' if args.realistic_simulation else '',
     })
     path = os.path.join(os.path.dirname(__file__), 'tests', 'test_backtesting.py')
     pytest.main(['-s', path])
@@ -202,6 +202,12 @@ CONF_SCHEMA = {
             'required': ['ask_last_balance']
         },
         'exchange': {'$ref': '#/definitions/exchange'},
+        'experimental': {
+            'type': 'object',
+            'properties': {
+                'use_sell_signal': {'type': 'boolean'}
+            }
+        },
         'telegram': {
             'type': 'object',
             'properties': {
