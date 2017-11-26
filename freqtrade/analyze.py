@@ -104,11 +104,15 @@ def populate_buy_trend(dataframe: DataFrame) -> DataFrame:
 #         ),
 #         'buy'] = 1
 
+        # (dataframe['close'] < dataframe['sma']) &
+        # (dataframe['fastd'] > dataframe['fastk']) &
+        # (dataframe['rsi'] > 0) &
+        # (dataframe['fastd'] > 0) &
+        # (dataframe['fishrsi'] < -0.54),
         (dataframe['close'] < dataframe['sma']) &
-        (dataframe['fastd'] > dataframe['fastk']) &
-        (dataframe['rsi'] > 0) &
-        (dataframe['fastd'] > 0) &
-        (dataframe['fishrsi'] < -0.54),
+        (dataframe['fishrsi'] < 0) &
+        (dataframe['mfi'] < 17.0) &
+        (dataframe['ema50'] > dataframe['ema100']),
         'buy'] = 1
     return dataframe
 

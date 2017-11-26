@@ -11,13 +11,23 @@ PAIRS = [
     'BTC_BCC', 'BTC_ETH', 'BTC_MER', 'BTC_POWR', 'BTC_ETC',
     'BTC_OK', 'BTC_NEO', 'BTC_EMC2', 'BTC_DASH', 'BTC_LSK',
     'BTC_LTC', 'BTC_XZC', 'BTC_OMG', 'BTC_STRAT', 'BTC_XRP',
-    'BTC_QTUM', 'BTC_WAVES', 'BTC_VTC', 'BTC_XLM', 'BTC_MCO'
+    'BTC_QTUM', 'BTC_WAVES', 'BTC_VTC', 'BTC_XLM', 'BTC_MCO',
+            "BTC_VTC",
+            "BTC_ARK",
+            "BTC_FTC",
+            "BTC_STORJ",
+            "BTC_NXT",
+            "BTC_OK",
+            "BTC_TIX",
+            "BTC_ADA",
+            "BTC_GNT",
+            "BTC_XLM"
 ]
 TICKER_INTERVAL = 5  # ticker interval in minutes (currently implemented: 1 and 5)
 OUTPUT_DIR = path.dirname(path.realpath(__file__))
 
 # Init Bittrex exchange
-exchange._API = Bittrex({'key': '', 'secret': ''})
+exchange._API = Bittrex({"key": "6a4d4a295cc440649303c9c923c94237", "secret": "60740f0e82694e6895bf7df5e3928bce"})
 
 for pair in PAIRS:
     data = exchange.get_ticker_history(pair, TICKER_INTERVAL)
