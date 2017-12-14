@@ -73,6 +73,7 @@ def populate_indicators(dataframe: DataFrame) -> DataFrame:
     dataframe['plus_di'] = ta.PLUS_DI(dataframe)
     dataframe['minus_dm'] = ta.MINUS_DM(dataframe)
     dataframe['minus_di'] = ta.MINUS_DI(dataframe)
+
     rsi = .1 * (dataframe['rsi'] - 50)
     dataframe['fishrsi'] = (numpy.exp(2 * rsi) - 1) / (numpy.exp(2 * rsi) + 1)
     return dataframe
@@ -83,6 +84,7 @@ def populate_buy_trend(dataframe: DataFrame) -> DataFrame:
     :param dataframe: DataFrame
     :return: DataFrame with buy column
     """
+    dataframe['fastk-previous'] = dataframe.fastk.shift(10)
     dataframe.loc[
 #   v1
 #         (dataframe['rsi'] < 31) &
@@ -110,11 +112,18 @@ def populate_buy_trend(dataframe: DataFrame) -> DataFrame:
         # (dataframe['rsi'] > 0) &
         # (dataframe['fastd'] > 0) &
         # (dataframe['fishrsi'] < -0.54),
+        # v3
+        # (dataframe['rsi'] < 35) &
+        # (dataframe['close'] < dataframe['sma']) &
+        # (dataframe['fishrsi'] < -0.54) &
+        # (dataframe['mfi'] < 17.0) &
+        # (dataframe['ema50'] > dataframe['ema100']),
+        (dataframe['volume'] > 2500) &
         (dataframe['rsi'] < 35) &
         (dataframe['close'] < dataframe['sma']) &
         (dataframe['fishrsi'] < -0.54) &
         (dataframe['mfi'] < 17.0) &
-        (dataframe['ema50'] > dataframe['ema100']),
+        (dataframe['fastk-previous'] > 10),
         'buy'] = 1
     return dataframe
 
