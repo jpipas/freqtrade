@@ -60,10 +60,12 @@ def test_parse_args_dynamic_whitelist():
     assert args is not None
     assert args.dynamic_whitelist is 20
 
+
 def test_parse_args_dynamic_whitelist_10():
     args = parse_args(['--dynamic-whitelist', '10'])
     assert args is not None
     assert args.dynamic_whitelist is 10
+
 
 def test_parse_args_dynamic_whitelist_invalid_values():
     with pytest.raises(SystemExit, match=r'2'):
@@ -95,7 +97,12 @@ def test_parse_args_backtesting_invalid():
 
 def test_parse_args_backtesting_custom(mocker):
     backtesting_mock = mocker.patch('freqtrade.optimize.backtesting.start', MagicMock())
-    args = parse_args(['-c', 'test_conf.json', 'backtesting', '--live', '--ticker-interval', '1'])
+    args = parse_args([
+        '-c', 'test_conf.json',
+        'backtesting',
+        '--live',
+        '--ticker-interval', '1',
+        '--refresh-pairs-cached'])
     assert args is None
     assert backtesting_mock.call_count == 1
 
@@ -106,6 +113,7 @@ def test_parse_args_backtesting_custom(mocker):
     assert call_args.subparser == 'backtesting'
     assert call_args.func is not None
     assert call_args.ticker_interval == 1
+    assert call_args.refresh_pairs is True
 
 
 def test_parse_args_hyperopt(mocker):

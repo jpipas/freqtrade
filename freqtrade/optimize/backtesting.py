@@ -35,7 +35,8 @@ def get_timeframe(data: Dict[str, Dict]) -> Tuple[arrow.Arrow, arrow.Arrow]:
     return arrow.get(min_date), arrow.get(max_date)
 
 
-def generate_text_table(data: Dict[str, Dict], results: DataFrame, stake_currency, ticker_interval) -> str:
+def generate_text_table(
+        data: Dict[str, Dict], results: DataFrame, stake_currency, ticker_interval) -> str:
     """
     Generates and returns a text table for the given backtest data and the results dataframe
     :return: pretty printed table with tabulate as str
@@ -132,13 +133,14 @@ def start(args):
     logger.info('Using ticker_interval: %s ...', args.ticker_interval)
 
     data = {}
+    pairs = config['exchange']['pair_whitelist']
     if args.live:
         logger.info('Downloading data for all pairs in whitelist ...')
-        for pair in config['exchange']['pair_whitelist']:
+        for pair in pairs:
             data[pair] = exchange.get_ticker_history(pair, args.ticker_interval)
     else:
-        logger.info('Using local backtesting data (ignoring whitelist in given config) ...')
-        data = load_data(args.ticker_interval)
+        logger.info('Using local backtesting data (using whitelist in given config) ...')
+        data = load_data(pairs=pairs, ticker_interval=args.ticker_interval, refresh_pairs=args.refresh_pairs)
 
         logger.info('Using stake_currency: %s ...', config['stake_currency'])
         logger.info('Using stake_amount: %s ...', config['stake_amount'])

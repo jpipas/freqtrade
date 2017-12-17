@@ -138,6 +138,14 @@ $ docker start freqtrade
 You do not need to rebuild the image for configuration
 changes, it will suffice to edit `config.json` and restart the container.
 
+#### systemd service file
+Copy `./freqtrade.service` to your systemd user directory (usually `~/.config/systemd/user`)
+and update `WorkingDirectory` and `ExecStart` to match your setup.
+After that you can start the daemon with:
+```bash
+$ systemctl --user start freqtrade
+```
+
 ### Usage
 ```
 usage: main.py [-h] [-c PATH] [-v] [--version] [--dynamic-whitelist [INT]]
@@ -192,6 +200,7 @@ Backtesting also uses the config specified via `-c/--config`.
 
 ```
 usage: freqtrade backtesting [-h] [-l] [-i INT] [--realistic-simulation]
+                             [-r]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -201,8 +210,24 @@ optional arguments:
   --realistic-simulation
                         uses max_open_trades from config to simulate real
                         world limitations
-
+  -r, --refresh-pairs-cached
+                        refresh the pairs files in tests/testdata with 
+                        the latest data from Bittrex. Use it if you want
+                        to run your backtesting with up-to-date data.
 ```
+
+#### How to use --refresh-pairs-cached parameter?
+The first time your run Backtesting, it will take the pairs your have 
+set in your config file and download data from Bittrex. 
+
+If for any reason you want to update your data set, you use 
+`--refresh-pairs-cached` to force Backtesting to update the data it has. 
+**Use it only if you want to update your data set. You will not be able
+to come back to the previous version.**
+
+To test your strategy with latest data, we recommend to continue using  
+the parameter `-l` or `--live`.
+
 
 ### Hyperopt
 
@@ -231,5 +256,5 @@ $ pytest freqtrade
 Feel like our bot is missing a feature? We welcome your pull requests! Few pointers for contributions:
 
 - Create your PR against the `develop` branch, not `master`.
-- New features need to contain unit tests.
+- New features need to contain unit tests and must be PEP8 conform (`max-line-length = 100`).
 - If you are unsure, discuss the feature on [slack](https://join.slack.com/t/highfrequencybot/shared_invite/enQtMjQ5NTM0OTYzMzY3LWMxYzE3M2MxNDdjMGM3ZTYwNzFjMGIwZGRjNTc3ZGU3MGE3NzdmZGMwNmU3NDM5ZTNmM2Y3NjRiNzk4NmM4OGE) or in a [issue](https://github.com/gcarq/freqtrade/issues) before a PR.

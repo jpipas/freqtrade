@@ -14,7 +14,8 @@ from freqtrade.misc import update_state, State, get_state
 from freqtrade.persistence import Trade
 from freqtrade.rpc import telegram
 from freqtrade.rpc.telegram import authorized_only, is_enabled, send_msg, _status, _status_table, \
-    _profit, _forcesell, _performance, _daily, _count, _start, _stop, _balance, _version, _help
+    _profit, _forcesell, _performance, _daily, _count, _start, _stop, _balance, _version, _help, \
+    _exec_forcesell
 
 
 def test_is_enabled(default_conf, mocker):
@@ -220,6 +221,30 @@ def test_forcesell_handle(default_conf, update, ticker, mocker):
     assert '0.07256061 (profit: ~-0.64%)' in rpc_mock.call_args_list[-1][0][0]
 
 
+def test_exec_forcesell_open_orders(default_conf, ticker, mocker):
+    mocker.patch.dict('freqtrade.main._CONF', default_conf)
+    cancel_order_mock = MagicMock()
+    mocker.patch.multiple('freqtrade.main.exchange',
+                          get_ticker=ticker,
+                          get_order=MagicMock(return_value={
+                              'closed': None,
+                              'type': 'LIMIT_BUY',
+                          }),
+                          cancel_order=cancel_order_mock)
+    trade = Trade(
+        pair='BTC_ETH',
+        open_rate=1,
+        exchange='BITTREX',
+        open_order_id='123456789',
+        amount=1,
+        fee=0.0,
+    )
+    _exec_forcesell(trade)
+
+    assert cancel_order_mock.call_count == 1
+    assert trade.is_open is False
+
+
 def test_forcesell_all_handle(default_conf, update, ticker, mocker):
     mocker.patch.dict('freqtrade.main._CONF', default_conf)
     mocker.patch('freqtrade.main.get_signal', side_effect=lambda s, t: True)
@@ -316,6 +341,7 @@ def test_performance_handle(
     assert 'Performance' in msg_mock.call_args_list[0][0][0]
     assert '<code>BTC_ETH\t10.05%</code>' in msg_mock.call_args_list[0][0][0]
 
+
 def test_daily_handle(
         default_conf, update, ticker, limit_buy_order, limit_sell_order, mocker):
     mocker.patch.dict('freqtrade.main._CONF', default_conf)
@@ -330,7 +356,7 @@ def test_daily_handle(
                           validate_pairs=MagicMock(),
                           get_ticker=ticker)
     init(default_conf, create_engine('sqlite://'))
-    
+
     # Create some test data
     create_trade(15.0)
     trade = Trade.query.first()
@@ -345,22 +371,22 @@ def test_daily_handle(
     trade.close_date = datetime.utcnow()
     trade.is_open = False
 
-    #try valid data
+    # try valid data
     update.message.text = '/daily 7'
     _daily(bot=MagicMock(), update=update)
     assert msg_mock.call_count == 1
     assert 'Daily' in msg_mock.call_args_list[0][0][0]
     assert str(date.today()) + '  1.50701325 BTC' in msg_mock.call_args_list[0][0][0]
-    
-    #try invalid data
+
+    # try invalid data
     msg_mock.reset_mock()
     update_state(State.RUNNING)
     update.message.text = '/daily -2'
     _daily(bot=MagicMock(), update=update)
     assert msg_mock.call_count == 1
-    assert 'must be an integer greater than 0' in msg_mock.call_args_list[0][0][0]   
-    
-    
+    assert 'must be an integer greater than 0' in msg_mock.call_args_list[0][0][0]
+
+
 def test_count_handle(default_conf, update, ticker, mocker):
     mocker.patch.dict('freqtrade.main._CONF', default_conf)
     mocker.patch('freqtrade.main.get_signal', side_effect=lambda s, t: True)
