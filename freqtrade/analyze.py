@@ -58,6 +58,7 @@ def populate_indicators(dataframe: DataFrame) -> DataFrame:
     dataframe['minus_di'] = ta.MINUS_DI(dataframe)
     dataframe['ema5'] = ta.EMA(dataframe, timeperiod=5)
     dataframe['ema10'] = ta.EMA(dataframe, timeperiod=10)
+    dataframe['ema21'] = ta.EMA(dataframe, timeperiods=21)
     dataframe['ema50'] = ta.EMA(dataframe, timeperiod=50)
     dataframe['ema100'] = ta.EMA(dataframe, timeperiod=100)
     dataframe['ema200'] = ta.EMA(dataframe, timeperiod=200)
@@ -123,19 +124,19 @@ def populate_buy_trend(dataframe: DataFrame) -> DataFrame:
         # v3
         # (dataframe['rsi'] < 35) &
         # (dataframe['close'] < dataframe['sma']) &
-        # (dataframe['fishrsi'] < -0.54) &
+
         # (dataframe['mfi'] < 17.0) &
         # # (dataframe['fastk-previous'] > 10) &
         # (dataframe['adx'] > 65) &
         # (dataframe['plus_di'] > 0.5),
-        (dataframe['rsi'] > 60) &
-        (dataframe['macdsignal'] > 0) &
-        (dataframe['macd'] > 0) &
-        (dataframe['macd'] > dataframe['macdsignal']) &
-        (dataframe['macdhist'] > 0) &
-        (dataframe['plus_di'] > 0.5) &
-        (dataframe['adx'] < dataframe['plus_di']) &
-        (dataframe['minus_di'] < 20),
+
+        # v4
+        # (dataframe['rsi'] > 70) &
+        (dataframe['fishrsi'] < -0.54) &
+        (dataframe['ema10'] >= dataframe['ema21']) &
+        (dataframe['mfi'] < 17.0),
+        # (dataframe['fastk-previous'] > 10) &
+        # (dataframe['adx'] > 65),
     'buy'] = 1
     return dataframe
 
@@ -170,22 +171,28 @@ def populate_sell_trend(dataframe: DataFrame) -> DataFrame:
 
         #  v3
         # (crossed_above(dataframe['rsi'], 85)) &
-        # # (crossed_above(dataframe['macd'],dataframe['macdsignal'])) &
+        # (crossed_above(dataframe['macd'],dataframe['macdsignal'])) &
         # (dataframe['sar'] > dataframe['close']) &
         # (dataframe['fishrsi'] > 0.3),
-        (
-            (
-                (crossed_above(dataframe['rsi'], 75)) |
-                (crossed_above(dataframe['fastd'], 79))
-            ) &
-            (dataframe['adx'] > 15) &
-            (dataframe['minus_di'] > 0)
-        ) |
-        (
-            (crossed_above(dataframe['rsi'], 50)) &
-            (dataframe['macd'] < 10) &
-            (dataframe['minus_di'] > 0)
-        ),
+        # v4
+        # (
+        #     (
+        #         (crossed_above(dataframe['rsi'], 75)) |
+        #         (crossed_above(dataframe['fastd'], 79))
+        #     ) &
+        #     (dataframe['adx'] > 15) &
+        #     (dataframe['minus_di'] > 0)
+        # ) |
+        # (
+        #     (crossed_above(dataframe['rsi'], 50)) &
+        #     (dataframe['macd'] < 10) &
+        #     (dataframe['minus_di'] > 0)
+        # ),
+        # (
+        #   (crossed_above(dataframe['rsi'], 73)) |
+        #   (crossed_above(dataframe['fastd'], 80))
+        # ) &
+        (crossed_above(dataframe['ema21'],dataframe['ema10'])),
         'sell'] = 1
     return dataframe
 
