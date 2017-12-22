@@ -22,10 +22,10 @@ def plot_analyzed_dataframe(pair: str) -> None:
     dataframe.loc[dataframe['sell'] == 1, 'sell_price'] = dataframe['close']
 
     # Two subplots sharing x axis
-    fig, (ax1, ax2, ax3) = plt.subplots(3, sharex=True)
+    fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, sharex=True)
     fig.suptitle(pair, fontsize=14, fontweight='bold')
     ax1.plot(dataframe.index.values, dataframe['close'], label='close')
-    # ax1.plot(dataframe.index.values, dataframe['sell'], 'ro', label='sell')
+    ax1.plot(dataframe.index.values, dataframe['sell_price'], 'ro', label='sell')
     ax1.plot(dataframe.index.values, dataframe['sma'], '--', label='SMA')
     ax1.plot(dataframe.index.values, dataframe['tema'], ':', label='TEMA')
     ax1.plot(dataframe.index.values, dataframe['blower'], '-.', label='BB low')
@@ -42,6 +42,10 @@ def plot_analyzed_dataframe(pair: str) -> None:
     ax3.plot(dataframe.index.values, [20] * len(dataframe.index.values))
     ax3.legend()
 
+    ax4.plot(dataframe.index.values, dataframe['ema10'], label='10')
+    ax4.plot(dataframe.index.values, dataframe['ema21'], label='21')
+    ax4.legend()
+
     # Fine-tune figure; make subplots close to each other and hide x ticks for
     # all but bottom plot.
     fig.subplots_adjust(hspace=0)
@@ -50,4 +54,4 @@ def plot_analyzed_dataframe(pair: str) -> None:
 
 
 if __name__ == '__main__':
-    plot_analyzed_dataframe('BTC_ETH')
+    plot_analyzed_dataframe('BTC_ADA')

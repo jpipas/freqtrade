@@ -112,9 +112,11 @@ def backtest(config: Dict, processed: Dict[str, DataFrame],
                     trade_count_lock[row2.date] = trade_count_lock.get(row2.date, 0) + 1
 
                 if min_roi_reached(trade, row2.close, row2.date) or row2.sell == 1:
+
                     current_profit_percent = trade.calc_profit_percent(rate=row2.close)
                     current_profit_BTC = trade.calc_profit(rate=row2.close)
                     lock_pair_until = row2.Index
+
                     trades.append((pair, current_profit_percent, current_profit_BTC, row2.Index - row.Index))
                     break
     labels = ['currency', 'profit_percent', 'profit_BTC', 'duration']

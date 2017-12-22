@@ -37,13 +37,13 @@ AVG_DURATION_TO_BEAT = 50
 # Configuration and data used by hyperopt
 PROCESSED = []
 OPTIMIZE_CONFIG = {
-    'max_open_trades': 3,
+    'max_open_trades': 5,
     'stake_currency': 'BTC',
-    'stake_amount': 0.01,
+    'stake_amount': 0.001,
     'minimal_roi': {
-        '40':  0.0,
-        '30':  0.01,
-        '20':  0.02,
+        '20':  0.0,
+        '10':  0.01,
+        '5':  0.02,
         '0':  0.04,
     },
     'stoploss': -0.10,
