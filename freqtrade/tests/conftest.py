@@ -66,6 +66,7 @@ def ticker():
         'last': 0.00001098,
     })
 
+
 @pytest.fixture
 def ticker_sell_up():
     return MagicMock(return_value={
@@ -74,6 +75,7 @@ def ticker_sell_up():
         'last': 0.00001172,
     })
 
+
 @pytest.fixture
 def ticker_sell_down():
     return MagicMock(return_value={
@@ -81,6 +83,7 @@ def ticker_sell_down():
         'ask': 0.00001043,
         'last': 0.00001044,
     })
+
 
 @pytest.fixture
 def health():

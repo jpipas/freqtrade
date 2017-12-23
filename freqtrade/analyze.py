@@ -47,8 +47,6 @@ def populate_indicators(dataframe: DataFrame) -> DataFrame:
     stoch = ta.STOCHF(dataframe)
     dataframe['fastd'] = stoch['fastd']
     dataframe['fastk'] = stoch['fastk']
-    dataframe['slowd'] = stoch['slowd']
-    dataframe['slowk'] = stoch['slowk']
     dataframe['blower'] = ta.BBANDS(dataframe, nbdevup=2, nbdevdn=2)['lowerband']
     dataframe['sma'] = ta.SMA(dataframe, timeperiod=40)
     dataframe['tema'] = ta.TEMA(dataframe, timeperiod=9)
@@ -145,7 +143,6 @@ def populate_buy_trend(dataframe: DataFrame) -> DataFrame:
         # v5
         (dataframe['close'] <= dataframe['blower']) &
         (dataframe['fastd'] < 0) &
-        (dataframe['slowd'] < 0) &
         (crossed_above(dataframe['cci'], -100)),
     'buy'] = 1
     return dataframe

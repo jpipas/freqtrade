@@ -98,10 +98,8 @@ def backtest(config: Dict, processed: Dict[str, DataFrame],
             trade = Trade(
                 open_rate=row.close,
                 open_date=row.date,
-
                 stake_amount=config['stake_amount'],
-                amount= config['stake_amount'] / row.open,
-
+                amount=config['stake_amount'] / row.open,
                 fee=exchange.get_fee()
             )
 
@@ -118,6 +116,7 @@ def backtest(config: Dict, processed: Dict[str, DataFrame],
                     lock_pair_until = row2.Index
 
                     trades.append((pair, current_profit_percent, current_profit_BTC, row2.Index - row.Index))
+
                     break
     labels = ['currency', 'profit_percent', 'profit_BTC', 'duration']
     return DataFrame.from_records(trades, columns=labels)

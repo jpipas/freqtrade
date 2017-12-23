@@ -196,7 +196,7 @@ def _status_table(bot: Bot, update: Update) -> None:
                 trade.id,
                 trade.pair,
                 shorten_date(arrow.get(trade.open_date).humanize(only_distance=True)),
-                '{:.2f}'.format(100 * trade.calc_profit_percent(current_rate))
+                '{:.2f}%'.format(100 * trade.calc_profit_percent(current_rate))
             ])
 
         columns = ['ID', 'Pair', 'Since', 'Profit']
@@ -232,9 +232,8 @@ def _daily(bot: Bot, update: Update) -> None:
 
     for day in range(0, timescale):
         # need to query between day+1 and day-1
-
-        nextdate = date.fromordinal(today-day+1)
-        prevdate = date.fromordinal(today-day-1)
+        nextdate = date.fromordinal(today - day + 1)
+        prevdate = date.fromordinal(today - day - 1)
         trades = Trade.query \
             .filter(Trade.is_open.is_(False)) \
             .filter(between(Trade.close_date, prevdate, nextdate)) \
