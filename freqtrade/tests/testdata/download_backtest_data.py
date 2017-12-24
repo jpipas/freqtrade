@@ -8,22 +8,42 @@ from freqtrade import exchange
 from freqtrade.exchange import Bittrex
 
 PAIRS = [
-    'BTC_BCC', 'BTC_ETH', 'BTC_MER', 'BTC_POWR', 'BTC_ETC',
-    'BTC_OK', 'BTC_NEO', 'BTC_EMC2', 'BTC_DASH', 'BTC_LSK',
-    'BTC_LTC', 'BTC_XZC', 'BTC_OMG', 'BTC_STRAT', 'BTC_XRP',
-    'BTC_QTUM', 'BTC_WAVES', 'BTC_VTC', 'BTC_XLM', 'BTC_MCO',
-            "BTC_VTC",
-            "BTC_ARK",
-            "BTC_FTC",
-            "BTC_STORJ",
-            "BTC_NXT",
-            "BTC_OK",
-            "BTC_TIX",
-            "BTC_ADA",
-            "BTC_GNT",
-            "BTC_XLM"
+    "BTC_ETH",
+    "BTC_LTC",
+    "BTC_POWR",
+    "BTC_FTC",
+    "BTC_STORJ",
+    "BTC_OK",
+    "BTC_TIX",
+    "BTC_XVG",
+    "BTC_PIVX",
+    "BTC_ADA",
+    "BTC_XLM",
+    "BTC_NXT",
+    "BTC_OMG",
+    "BTC_WAVES",
+    "BTC_XRP",
+    "BTC_QTUM",
+    "BTC_MCO",
+    "BTC_NEO",
+    "BTC_FLO",
+    "BTC_VOX",
+    "BTC_ZEC",
+    "BTC_SALT",
+    "BTC_XZC",
+    "BTC_XMR",
+"BTC_ETH",
+                "BTC_LTC",
+                "BTC_ETC",
+                "BTC_DASH",
+                "BTC_ZEC",
+                "BTC_XLM",
+                "BTC_NXT",
+                "BTC_POWR",
+                "BTC_ADA",
+                "BTC_XMR"
 ]
-TICKER_INTERVAL = 5  # ticker interval in minutes (currently implemented: 1 and 5)
+TICKER_INTERVAL = 1  # ticker interval in minutes (currently implemented: 1 and 5)
 OUTPUT_DIR = path.dirname(path.realpath(__file__))
 
 # Init Bittrex exchange

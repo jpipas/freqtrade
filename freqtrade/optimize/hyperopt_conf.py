@@ -26,16 +26,7 @@ def hyperopt_optimize_conf() -> dict:
         },
         "exchange": {
             "pair_whitelist": [
-                "BTC_ETH",
-                "BTC_LTC",
-                "BTC_ETC",
-                "BTC_DASH",
-                "BTC_ZEC",
-                "BTC_XLM",
-                "BTC_NXT",
-                "BTC_POWR",
-                "BTC_ADA",
-                "BTC_XMR"
+                "BTC_ETH"
             ]
         }
     }
