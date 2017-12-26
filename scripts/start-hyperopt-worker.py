@@ -4,7 +4,7 @@ import os
 import subprocess
 
 PROC_COUNT = multiprocessing.cpu_count() - 1
-DB_NAME = 'freqtrade_hyperopt'
+DB_NAME = 'freqtrade_hyperopt1'
 WORK_DIR = os.path.join(
     os.path.sep,
     os.path.abspath(os.path.dirname(__file__)),

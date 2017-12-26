@@ -26,7 +26,28 @@ def hyperopt_optimize_conf() -> dict:
         },
         "exchange": {
             "pair_whitelist": [
-                "BTC_ETH"
+                "BTC_POWR",
+                "BTC_FTC",
+                "BTC_STORJ",
+                "BTC_OK",
+                "BTC_TIX",
+                "BTC_XVG",
+                "BTC_PIVX",
+                "BTC_ADA",
+                "BTC_XLM",
+                "BTC_NXT",
+                "BTC_OMG",
+                "BTC_WAVES",
+                "BTC_XRP",
+                "BTC_QTUM",
+                "BTC_MCO",
+                "BTC_NEO",
+                "BTC_FLO",
+                "BTC_VOX",
+                "BTC_ZEC",
+                "BTC_SALT",
+                "BTC_XZC",
+                "BTC_XMR"
             ]
         }
     }

@@ -237,14 +237,13 @@ def start(args):
         logger.info('Using mongodb ...')
         logger.info('Start scripts/start-mongodb.sh and start-hyperopt-worker.sh manually!')
 
-        db_name = 'freqtrade_hyperopt'
+        db_name = 'freqtrade_hyperopt1'
         trials = MongoTrials('mongo://127.0.0.1:1234/{}/jobs'.format(db_name), exp_key='exp1')
     else:
         trials = Trials()
 
     best = fmin(fn=optimizer, space=SPACE, algo=tpe.suggest, max_evals=TOTAL_TRIES, trials=trials)
     logger.info('Best parameters:\n%s', json.dumps(best, indent=4))
-
     filt_res = filter_nan(trials.results, 'total_profit')
     filt_res = filter_nan(filt_res, 'avg_profit')
 

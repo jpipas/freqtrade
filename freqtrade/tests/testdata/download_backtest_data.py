@@ -32,7 +32,7 @@ PAIRS = [
     "BTC_SALT",
     "BTC_XZC",
     "BTC_XMR",
-"BTC_ETH",
+    "BTC_ETH",
                 "BTC_LTC",
                 "BTC_ETC",
                 "BTC_DASH",
@@ -43,7 +43,7 @@ PAIRS = [
                 "BTC_ADA",
                 "BTC_XMR"
 ]
-TICKER_INTERVAL = 1  # ticker interval in minutes (currently implemented: 1 and 5)
+TICKER_INTERVAL = 5  # ticker interval in minutes (currently implemented: 1 and 5)
 OUTPUT_DIR = path.dirname(path.realpath(__file__))
 
 # Init Bittrex exchange
