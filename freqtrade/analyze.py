@@ -159,46 +159,43 @@ def populate_buy_trend(dataframe: DataFrame) -> DataFrame:
         # (dataframe['close'] < dataframe['sma5']) &
         # (dataframe['rsi'] < 10) &
         # (dataframe['close'] >= dataframe['blower']) &
-        (
-            (dataframe['adx'] > 20) &
-            (dataframe['minus_dm'] > 0)
-        ) &
-        (
-            (crossed_above(dataframe['ema10'], dataframe['ema21'])) |
-            (crossed_above(dataframe['macd'], dataframe['macdsignal']))
-        ),
+        # v6
+        # (
+        #     (dataframe['adx'] > 20) &
+        #     (dataframe['minus_dm'] > 0)
+        # ) &
+        # (
+        #     (crossed_above(dataframe['ema10'], dataframe['ema21'])) |
+        #     (crossed_above(dataframe['macd'], dataframe['macdsignal']))
+        # ),
 
-    #     {
-    #         "adx": 0,
-    #         "fastd": 1,
-    #         "fastd-value": 48.0,
-    #         "green_candle": 1,
-    #         "mfi": 1,
-    #         "mfi-value": 23.0,
-    #         "over_sar": 1,
-    #         "rsi": 1,
-    #         "rsi-value": 21.0,
-    #         "trigger": 4,
-    #         "uptrend_long_ema": 1,
-    #         "uptrend_short_ema": 1,
-    #         "uptrend_sma": 0
-    #     }
-    # 2017 - 12 - 24
-    # 23: 50:18, 462 - freqtrade.optimize.hyperopt - INFO - Best
-    # Result:
-    # Made
-    # 830
-    # buys.Average
-    # profit
-    # 0.09 %.Total
-    # profit
-    # was
-    # 0.00711045
-    # BTC.Average
-    # duration
-    # 34.5
-    # mins.
+        # v7
+        #     {
+        #         "adx": 0,
+        #         "fastd": 1,
+        #         "fastd-value": 48.0,
+        #         "green_candle": 1,
+        #         "mfi": 1,
+        #         "mfi-value": 23.0,
+        #         "over_sar": 1,
+        #         "rsi": 1,
+        #         "rsi-value": 21.0,
+        #         "trigger": 4,
+        #         "uptrend_long_ema": 1,
+        #         "uptrend_short_ema": 1,
+        #         "uptrend_sma": 0
+        #     }
+        # 2017 - 12 - 24
+        # Result: Made 830 buys.  Average profit 0.09 %.  Total profit was 0.00711045 BTC.Average duration 34.5 mins.
 
+        (dataframe['fastd'] < 48) &
+        (dataframe['close'] > dataframe['open']) &
+        (dataframe['mfi'] < 23) &
+        (dataframe['rsi'] < 21) &
+        (dataframe['close'] > dataframe['sar']) &
+        (dataframe['ema50'] > dataframe['ema100']) &
+        # (crossed_above(dataframe['macd'], dataframe['macdsignal'])) &
+        (dataframe['ema5'] > dataframe['ema10']),
     'buy'] = 1
     return dataframe
 
