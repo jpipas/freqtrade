@@ -268,6 +268,14 @@ CONF_SCHEMA = {
                         'pattern': '^[0-9A-Z]+_[0-9A-Z]+$'
                     },
                     'uniqueItems': True
+                },
+                'pair_blacklist': {
+                    'type': 'array',
+                    'items': {
+                        'type': 'string',
+                        'pattern': '^[0-9A-Z]+_[0-9A-Z]+$'
+                    },
+                    'uniqueItems': True
                 }
             },
             'required': ['name', 'key', 'secret', 'pair_whitelist']
@@ -280,6 +288,7 @@ CONF_SCHEMA = {
         'max_open_trades',
         'stake_currency',
         'stake_amount',
+        'fiat_display_currency',
         'dry_run',
         'minimal_roi',
         'bid_strategy',
