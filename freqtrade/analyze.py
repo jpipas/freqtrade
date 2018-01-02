@@ -47,6 +47,11 @@ def populate_indicators(dataframe: DataFrame) -> DataFrame:
     stoch = ta.STOCHF(dataframe)
     dataframe['fastd'] = stoch['fastd']
     dataframe['fastk'] = stoch['fastk']
+
+    sstoch = ta.STOCH(dataframe)
+    dataframe['slowk'] = sstoch['slowk']
+    dataframe['slowd'] = sstoch['slowd']
+
     dataframe['blower'] = ta.BBANDS(dataframe, nbdevup=2, nbdevdn=2)['lowerband']
     dataframe['sma'] = ta.SMA(dataframe, timeperiod=40)
 
@@ -93,32 +98,21 @@ def populate_buy_trend(dataframe: DataFrame) -> DataFrame:
     """
     dataframe['fastk-previous'] = dataframe.fastk.shift(10)
     dataframe.loc[
-#   v1
-#         (dataframe['rsi'] < 31) &
-#         (dataframe['fastd'] < 28) &
-#         (dataframe['ao'] < 40) &
-#         (dataframe['adx'] > 28) &
+        #   v1
+        # (dataframe['rsi'] < 31) &
+        # (dataframe['fastd'] < 28) &
+        # (dataframe['ao'] < 40) &
+        # (dataframe['adx'] > 28) &
         # (dataframe['ema50'] > dataframe['ema200']) &
         # (dataframe['plus_di'] > 0.5) &
 
-#   v2
-#         (
-#             (dataframe['rsi'] < 32) &
-#             (dataframe['fastd'] < 28) &
-#             (dataframe['adx'] > 28) &
-#             (dataframe['plus_di'] > 0.5)
-#         ) |
-#         (
-#             (dataframe['adx'] > 65) &
-#             (dataframe['plus_di'] > 0.5)
-#         ),
-#         'buy'] = 1
-
+        #  v2
         # (dataframe['close'] < dataframe['sma']) &
         # (dataframe['fastd'] > dataframe['fastk']) &
         # (dataframe['rsi'] > 0) &
         # (dataframe['fastd'] > 0) &
         # (dataframe['fishrsi'] < -0.54),
+
         # v3
         # (dataframe['rsi'] < 35) &
         # (dataframe['close'] < dataframe['sma']) &
@@ -130,7 +124,6 @@ def populate_buy_trend(dataframe: DataFrame) -> DataFrame:
         # v3
         # (dataframe['rsi'] < 35) &
         # (dataframe['close'] < dataframe['sma']) &
-
         # (dataframe['mfi'] < 17.0) &
         # # (dataframe['fastk-previous'] > 10) &
         # (dataframe['adx'] > 65) &
@@ -159,6 +152,7 @@ def populate_buy_trend(dataframe: DataFrame) -> DataFrame:
         # (dataframe['close'] < dataframe['sma5']) &
         # (dataframe['rsi'] < 10) &
         # (dataframe['close'] >= dataframe['blower']) &
+
         # v6
         # (
         #     (dataframe['adx'] > 20) &
@@ -187,15 +181,16 @@ def populate_buy_trend(dataframe: DataFrame) -> DataFrame:
         #     }
         # 2017 - 12 - 24
         # Result: Made 830 buys.  Average profit 0.09 %.  Total profit was 0.00711045 BTC.Average duration 34.5 mins.
-
-        (dataframe['fastd'] < 48) &
-        (dataframe['close'] > dataframe['open']) &
-        (dataframe['mfi'] < 23) &
-        (dataframe['rsi'] < 21) &
-        (dataframe['close'] > dataframe['sar']) &
-        (dataframe['ema50'] > dataframe['ema100']) &
-        # (crossed_above(dataframe['macd'], dataframe['macdsignal'])) &
-        (dataframe['ema5'] > dataframe['ema10']),
+        (
+            (dataframe['fastd'] < 48) &  # fastd-value
+            (dataframe['close'] > dataframe['open']) &  # green-candle
+            (dataframe['mfi'] < 23) &  # mfi-value
+            (dataframe['close'] > dataframe['sar']) &  # over_sar
+            (dataframe['rsi'] < 21) &  # rsi-value
+            # (dataframe['ema50'] > dataframe['ema100']) &  # uptrend-long-ema
+            (crossed_above(dataframe['macd'], dataframe['macdsignal']))  # trigger 4 ???????
+            # (dataframe['ema5'] > dataframe['ema10'])  # uptrend-short-ema
+        ),
     'buy'] = 1
     return dataframe
 
