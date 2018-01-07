@@ -5,6 +5,7 @@ import logging
 import sys
 import time
 import traceback
+import arrow
 from datetime import datetime
 from typing import Dict, Optional, List
 
@@ -98,6 +99,10 @@ def _process(nb_assets: Optional[int] = 0) -> bool:
                 # Check if we can sell our current pair
                 state_changed = handle_trade(trade) or state_changed
 
+        if 'unfilledtimeout' in _CONF:
+            # Check and handle any timed out open orders
+            check_handle_timedout(_CONF['unfilledtimeout'])
+
             Trade.session.flush()
     except (requests.exceptions.RequestException, json.JSONDecodeError) as error:
         logger.warning(
@@ -113,6 +118,50 @@ def _process(nb_assets: Optional[int] = 0) -> bool:
         logger.exception('Got OperationalException. Stopping trader ...')
         update_state(State.STOPPED)
     return state_changed
+
+
+def check_handle_timedout(timeoutvalue: int) -> None:
+    """
+    Check if any orders are timed out and cancel if neccessary
+    :param timeoutvalue: Number of minutes until order is considered timed out
+    :return: None
+    """
+    timeoutthreashold = arrow.utcnow().shift(minutes=-timeoutvalue).datetime
+
+    for trade in Trade.query.filter(Trade.open_order_id.isnot(None)).all():
+        order = exchange.get_order(trade.open_order_id)
+        ordertime = arrow.get(order['opened'])
+
+        if order['type'] == "LIMIT_BUY" and ordertime < timeoutthreashold:
+            # Buy timeout - cancel order
+            exchange.cancel_order(trade.open_order_id)
+            if order['remaining'] == order['amount']:
+                # if trade is not partially completed, just delete the trade
+                Trade.session.delete(trade)
+                Trade.session.flush()
+                logger.info('Buy order timeout for %s.', trade)
+            else:
+                # if trade is partially complete, edit the stake details for the trade
+                # and close the order
+                trade.amount = order['amount'] - order['remaining']
+                trade.stake_amount = trade.amount * trade.open_rate
+                trade.open_order_id = None
+                logger.info('Partial buy order timeout for %s.', trade)
+        elif order['type'] == "LIMIT_SELL" and ordertime < timeoutthreashold:
+            # Sell timeout - cancel order and update trade
+            if order['remaining'] == order['amount']:
+                # if trade is not partially completed, just cancel the trade
+                exchange.cancel_order(trade.open_order_id)
+                trade.close_rate = None
+                trade.close_profit = None
+                trade.close_date = None
+                trade.is_open = True
+                trade.open_order_id = None
+                logger.info('Sell order timeout for %s.', trade)
+                return True
+            else:
+                # TODO: figure out how to handle partially complete sell orders
+                pass
 
 
 def execute_sell(trade: Trade, limit: float) -> None:
@@ -198,12 +247,6 @@ def handle_trade(trade: Trade) -> bool:
     logger.debug('Handling %s ...', trade)
     current_rate = exchange.get_ticker(trade.pair)['bid']
 
-    # Experimental: Check if the trade is profitable before selling it (avoid selling at loss)
-    if _CONF.get('experimental', {}).get('sell_profit_only'):
-        logger.debug('Checking if trade is profitable ...')
-        if trade.calc_profit(rate=current_rate) <= 0:
-            return False
-
     # Check if minimal roi has been reached
     if min_roi_reached(trade, current_rate, datetime.utcnow()):
         logger.debug('Executing sell due to ROI ...')
@@ -212,6 +255,11 @@ def handle_trade(trade: Trade) -> bool:
 
     # Experimental: Check if sell signal has been enabled and triggered
     if _CONF.get('experimental', {}).get('use_sell_signal'):
+        # Experimental: Check if the trade is profitable before selling it (avoid selling at loss)
+        if _CONF.get('experimental', {}).get('sell_profit_only'):
+            logger.debug('Checking if trade is profitable ...')
+            if trade.calc_profit(rate=current_rate) <= 0:
+                return False
         logger.debug('Checking sell_signal ...')
         if get_signal(trade.pair, SignalType.SELL):
             logger.debug('Executing sell due to sell signal ...')
@@ -350,14 +398,18 @@ def cleanup() -> None:
     exit(0)
 
 
-def main() -> None:
+def main(sysargv=sys.argv[1:]) -> None:
     """
     Loads and validates the config and handles the main loop
     :return: None
     """
     global _CONF
-    args = parse_args(sys.argv[1:])
-    if not args:
+    args = parse_args(sysargv,
+                      'Simple High Frequency Trading Bot for crypto currencies')
+
+    # A subcommand has been issued
+    if hasattr(args, 'func'):
+        args.func(args)
         exit(0)
 
     # Initialize logger
