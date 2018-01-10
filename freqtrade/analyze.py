@@ -12,8 +12,10 @@ from pandas import DataFrame, to_datetime
 import numpy
 
 from freqtrade.exchange import get_ticker_history
-from freqtrade.vendor.qtpylib.indicators import awesome_oscillator, crossed_above, crossed_below, \
-    PandasObject as qtpylib
+
+from freqtrade.vendor.qtpylib.indicators import awesome_oscillator, crossed_above, crossed_below
+import freqtrade.vendor.qtpylib.indicators as qtpylib
+
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +64,7 @@ def populate_indicators(dataframe: DataFrame) -> DataFrame:
     dataframe['tema'] = ta.TEMA(dataframe, timeperiod=9)
 
     # Awesome oscillator
-    dataframe['ao'] = awesome_oscillator(dataframe)
+    dataframe['ao'] = qtpylib.awesome_oscillator(dataframe)
 
     # Commodity Channel Index: values Oversold:<-100, Overbought:>100
     dataframe['cci'] = ta.CCI(dataframe)

@@ -5,17 +5,23 @@ from freqtrade.optimize.hyperopt import calculate_loss, TARGET_TRADES, EXPECTED_
 
 
 def test_loss_calculation_prefer_correct_trade_count():
-    correct = calculate_loss(1, TARGET_TRADES)
-    over = calculate_loss(1, TARGET_TRADES + 100)
-    under = calculate_loss(1, TARGET_TRADES - 100)
+    correct = calculate_loss(1, TARGET_TRADES, 20)
+    over = calculate_loss(1, TARGET_TRADES + 100, 20)
+    under = calculate_loss(1, TARGET_TRADES - 100, 20)
     assert over > correct
     assert under > correct
 
 
+def test_loss_calculation_prefer_shorter_trades():
+    shorter = calculate_loss(1, 100, 20)
+    longer = calculate_loss(1, 100, 30)
+    assert shorter < longer
+
+
 def test_loss_calculation_has_limited_profit():
-    correct = calculate_loss(EXPECTED_MAX_PROFIT, TARGET_TRADES)
-    over = calculate_loss(EXPECTED_MAX_PROFIT * 2, TARGET_TRADES)
-    under = calculate_loss(EXPECTED_MAX_PROFIT / 2, TARGET_TRADES)
+    correct = calculate_loss(EXPECTED_MAX_PROFIT, TARGET_TRADES, 20)
+    over = calculate_loss(EXPECTED_MAX_PROFIT * 2, TARGET_TRADES, 20)
+    under = calculate_loss(EXPECTED_MAX_PROFIT / 2, TARGET_TRADES, 20)
     assert over == correct
     assert under > correct
 
@@ -81,19 +87,20 @@ def test_no_log_if_loss_does_not_improve(mocker):
 
 def test_fmin_best_results(mocker, caplog):
     fmin_result = {
-      "adx": 1,
-      "adx-value": 15.0,
-      "fastd": 1,
-      "fastd-value": 40.0,
-      "green_candle": 1,
-      "mfi": 0,
-      "over_sar": 0,
-      "rsi": 1,
-      "rsi-value": 37.0,
-      "trigger": 2,
-      "uptrend_long_ema": 1,
-      "uptrend_short_ema": 0,
-      "uptrend_sma": 0
+        "adx": 1,
+        "adx-value": 15.0,
+        "fastd": 1,
+        "fastd-value": 40.0,
+        "green_candle": 1,
+        "mfi": 0,
+        "over_sar": 0,
+        "rsi": 1,
+        "rsi-value": 37.0,
+        "trigger": 2,
+        "uptrend_long_ema": 1,
+        "uptrend_short_ema": 0,
+        "uptrend_sma": 0,
+        "stoploss": -0.1,
     }
 
     mocker.patch('freqtrade.optimize.hyperopt.MongoTrials', return_value=create_trials(mocker))
@@ -109,7 +116,27 @@ def test_fmin_best_results(mocker, caplog):
         '"adx": {\n        "enabled": true,\n        "value": 15.0\n    },',
         '"green_candle": {\n        "enabled": true\n    },',
         '"mfi": {\n        "enabled": false\n    },',
-        '"trigger": {\n        "type": "ao_cross_zero"\n    },'
+        '"trigger": {\n        "type": "ao_cross_zero"\n    },',
+        '"stoploss": -0.1',
+    ]
+
+    for line in exists:
+        assert line in caplog.text
+
+
+def test_fmin_throw_value_error(mocker, caplog):
+    mocker.patch('freqtrade.optimize.hyperopt.MongoTrials', return_value=create_trials(mocker))
+    mocker.patch('freqtrade.optimize.preprocess')
+    mocker.patch('freqtrade.optimize.load_data')
+    mocker.patch('freqtrade.optimize.hyperopt.fmin', side_effect=ValueError())
+
+    args = mocker.Mock(epochs=1, config='config.json.example')
+    start(args)
+
+    exists = [
+        'Best Result:',
+        'Sorry, Hyperopt was not able to find good parameters. Please try with more epochs '
+        '(param: -e).',
     ]
 
     for line in exists:

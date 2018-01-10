@@ -126,6 +126,14 @@ def parse_args(args: List[str], description: str):
         dest='dry_run_db',
     )
     parser.add_argument(
+        '-dd', '--datadir',
+        help='path to backtest data (default freqdata/tests/testdata',
+        dest='datadir',
+        default='freqtrade/tests/testdata',
+        type=str,
+        metavar='PATH',
+    )
+    parser.add_argument(
         '--dynamic-whitelist',
         help='dynamically generate and update whitelist based on 24h BaseVolume (Default 20 currencies)',  # noqa
         dest='dynamic_whitelist',
@@ -210,7 +218,14 @@ CONF_SCHEMA = {
         'max_open_trades': {'type': 'integer', 'minimum': 1},
         'stake_currency': {'type': 'string', 'enum': ['BTC', 'ETH', 'USDT']},
         'stake_amount': {'type': 'number', 'minimum': 0.0005},
-        'fiat_display_currency': {'type': 'string', 'enum': ['USD', 'EUR', 'CAD', 'SGD']},
+        'fiat_display_currency': {'type': 'string', 'enum': ['AUD', 'BRL', 'CAD', 'CHF',
+                                                             'CLP', 'CNY', 'CZK', 'DKK',
+                                                             'EUR', 'GBP', 'HKD', 'HUF',
+                                                             'IDR', 'ILS', 'INR', 'JPY',
+                                                             'KRW', 'MXN', 'MYR', 'NOK',
+                                                             'NZD', 'PHP', 'PKR', 'PLN',
+                                                             'RUB', 'SEK', 'SGD', 'THB',
+                                                             'TRY', 'TWD', 'ZAR', 'USD']},
         'dry_run': {'type': 'boolean'},
         'minimal_roi': {
             'type': 'object',
