@@ -56,6 +56,7 @@ def populate_indicators(dataframe: DataFrame) -> DataFrame:
 
     # ADX
     dataframe['adx'] = ta.ADX(dataframe)
+    dataframe['slowadx'] = ta.ADX(dataframe, 35)
 
     dataframe['sma'] = ta.SMA(dataframe, timeperiod=40)
     dataframe['sma200'] = ta.SMA(dataframe, timeperiod=200)
@@ -108,11 +109,20 @@ def populate_indicators(dataframe: DataFrame) -> DataFrame:
     stoch_fast = ta.STOCHF(dataframe)
     dataframe['fastd'] = stoch_fast['fastd']
     dataframe['fastk'] = stoch_fast['fastk']
+    dataframe['fastk-previous'] = dataframe.fastk.shift(1)
+    dataframe['fastd-previous'] = dataframe.fastd.shift(1)
 
     # Stoch RSI
     stoch_rsi = ta.STOCHRSI(dataframe)
     dataframe['fastd_rsi'] = stoch_rsi['fastd']
     dataframe['fastk_rsi'] = stoch_rsi['fastk']
+
+    # Slow Stoch
+    slowstoch = ta.STOCHF(dataframe, 50)
+    dataframe['slowfastd'] = slowstoch['fastd']
+    dataframe['slowfastk'] = slowstoch['fastk']
+    dataframe['slowfastk-previous'] = dataframe.slowfastk.shift(1)
+    dataframe['slowfastd-previous'] = dataframe.slowfastd.shift(1)
 
     # Overlap Studies
     # ------------------------------------
@@ -313,6 +323,15 @@ def populate_buy_trend(dataframe: DataFrame) -> DataFrame:
         #         "uptrend_short_ema": 1,
         #         "uptrend_sma": 0
         #     }
+        # (
+        #         (dataframe['fastd'] < 48) &  # fastd-value
+        #         (dataframe['close'] > dataframe['open']) &  # green-candle
+        #         (dataframe['mfi'] < 23) &  # mfi-value
+        #         (dataframe['close'] > dataframe['sar']) &  # over_sar
+        #         (dataframe['rsi'] < 21) &  # rsi-value
+        #         (dataframe['ema50'] > dataframe['ema100']) &
+        #         (crossed_above(dataframe['macd'], dataframe['macdsignal']))  # trigger 4 ???????
+        # ),
 
         # v8
         (
@@ -325,7 +344,7 @@ def populate_buy_trend(dataframe: DataFrame) -> DataFrame:
             (dataframe['slowfastk-previous'] < 30) & (dataframe['slowfastd-previous'] < 30) &
             (dataframe['fastk-previous'] < dataframe['fastd-previous']) & (dataframe['fastk'] > dataframe['fastd']) &
             (dataframe['mean-volume'] > 0.75) & (dataframe['close'] > 0.00000100)
-        ),
+        ) |
 
         # v9 - Hyperopt 20000 trials
         # {
@@ -345,15 +364,12 @@ def populate_buy_trend(dataframe: DataFrame) -> DataFrame:
         # }
         # 1099 trades. Avg profit  0.42%. Total profit  0.00457311 BTC. Avg duration 160.8 mins.
 
-        # (
-        #         (dataframe['fastd'] < 48) &  # fastd-value
-        #         (dataframe['close'] > dataframe['open']) &  # green-candle
-        #         (dataframe['mfi'] < 23) &  # mfi-value
-        #         (dataframe['close'] > dataframe['sar']) &  # over_sar
-        #         (dataframe['rsi'] < 21) &  # rsi-value
-        #         (dataframe['ema50'] > dataframe['ema100']) &
-        #         (crossed_above(dataframe['macd'], dataframe['macdsignal']))  # trigger 4 ???????
-        # ),
+        (
+            (dataframe['adx'] > 20) &
+            (dataframe['fastd'] > 0) &
+            (crossed_above(dataframe['close'], dataframe['sar'])) &
+            (dataframe['ema50'] > dataframe['ema100'])
+        ),
         'buy'] = 1
     return dataframe
 
@@ -393,19 +409,19 @@ def populate_sell_trend(dataframe: DataFrame) -> DataFrame:
         # (dataframe['sar'] > dataframe['close']) &
         # (dataframe['fishrsi'] > 0.3),
         # v4
-        (
-                (
-                        (crossed_above(dataframe['rsi'], 85)) |
-                        (crossed_above(dataframe['fastd'], 79))
-                ) &
-                (dataframe['adx'] > 15) &
-                (dataframe['minus_di'] > 0)
-        ) |
-        (
-                (crossed_above(dataframe['rsi'], 50)) &
-                (dataframe['macd'] < 10) &
-                (dataframe['minus_di'] > 0)
-        ),
+        # (
+        #         (
+        #                 (crossed_above(dataframe['rsi'], 85)) |
+        #                 (crossed_above(dataframe['fastd'], 79))
+        #         ) &
+        #         (dataframe['adx'] > 15) &
+        #         (dataframe['minus_di'] > 0)
+        # ) |
+        # (
+        #         (crossed_above(dataframe['rsi'], 50)) &
+        #         (dataframe['macd'] < 10) &
+        #         (dataframe['minus_di'] > 0)
+        # ),
         # v5
         # (
         #   (crossed_above(dataframe['rsi'], 73)) |
@@ -427,6 +443,13 @@ def populate_sell_trend(dataframe: DataFrame) -> DataFrame:
         #         (dataframe['minus_di'] > 0.5)
         # ),
 
+        # v7
+        (
+            (dataframe['adx'] < 25) &
+            ((dataframe['slowfastk'] > 70) | (dataframe['fastd'] > 70)) &
+            (dataframe['fastk-previous'] < dataframe['fastd-previous']) &
+            (dataframe['close'] > dataframe['ema5'])
+        ),
         'sell'] = 1
     return dataframe
 
