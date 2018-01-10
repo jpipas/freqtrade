@@ -11,16 +11,16 @@ def hyperopt_optimize_conf() -> dict:
     :return:
     """
     return {
-        'max_open_trades': 3,
+        'max_open_trades': 5,
         'stake_currency': 'BTC',
-        'stake_amount': 0.01,
+        'stake_amount': 0.001,
         "minimal_roi": {
-            '40':  0.0,
-            '30':  0.01,
-            '20':  0.02,
-            '0':  0.04,
+            "20": 0.000,
+            "15": 0.025,
+            "10": 0.03,
+            "0": 0.045
         },
-        'stoploss': -0.10,
+        'stoploss': -0.15,
         "bid_strategy": {
             "ask_last_balance": 0.0
         },

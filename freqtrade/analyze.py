@@ -50,6 +50,7 @@ def populate_indicators(dataframe: DataFrame) -> DataFrame:
 
     # Momentum Indicator
     # ------------------------------------
+    dataframe['mean-volume'] = dataframe['volume'].mean() * 10
 
     # ADX
     dataframe['adx'] = ta.ADX(dataframe)
@@ -310,18 +311,47 @@ def populate_buy_trend(dataframe: DataFrame) -> DataFrame:
         #         "uptrend_short_ema": 1,
         #         "uptrend_sma": 0
         #     }
-        # 2017 - 12 - 24
-        # Result: Made 830 buys.  Average profit 0.09 %.  Total profit was 0.00711045 BTC.Average duration 34.5 mins.
+
+        # v8
         (
-                (dataframe['fastd'] < 48) &  # fastd-value
-                (dataframe['close'] > dataframe['open']) &  # green-candle
-                (dataframe['mfi'] < 23) &  # mfi-value
-                (dataframe['close'] > dataframe['sar']) &  # over_sar
-                (dataframe['rsi'] < 21) &  # rsi-value
-                # (dataframe['ema50'] > dataframe['ema100']) &  # uptrend-long-ema
-                (crossed_above(dataframe['macd'], dataframe['macdsignal']))  # trigger 4 ???????
-            # (dataframe['ema5'] > dataframe['ema10'])  # uptrend-short-ema
+            (
+                (dataframe['adx'] > 50) |
+                (dataframe['slowadx'] > 26)
+            ) &
+            (dataframe['cci'] < -100) &
+            (dataframe['fastk-previous'] < 20) & (dataframe['fastd-previous'] < 20) &
+            (dataframe['slowfastk-previous'] < 30) & (dataframe['slowfastd-previous'] < 30) &
+            (dataframe['fastk-previous'] < dataframe['fastd-previous']) & (dataframe['fastk'] > dataframe['fastd']) &
+            (dataframe['mean-volume'] > 0.75) & (dataframe['close'] > 0.00000100)
         ),
+
+        # v9 - Hyperopt 20000 trials
+        # {
+        #     "adx": {
+        #         "enabled": true,
+        #         "value": 20.0
+        #     },
+        #     "fastd_supp0": {
+        #         "enabled": true
+        #     },
+        #     "trigger": {
+        #         "type": "sar_reversal"
+        #     },
+        #     "uptrend_long_ema": {
+        #         "enabled": true
+        #     },
+        # }
+        # 1099 trades. Avg profit  0.42%. Total profit  0.00457311 BTC. Avg duration 160.8 mins.
+
+        # (
+        #         (dataframe['fastd'] < 48) &  # fastd-value
+        #         (dataframe['close'] > dataframe['open']) &  # green-candle
+        #         (dataframe['mfi'] < 23) &  # mfi-value
+        #         (dataframe['close'] > dataframe['sar']) &  # over_sar
+        #         (dataframe['rsi'] < 21) &  # rsi-value
+        #         (dataframe['ema50'] > dataframe['ema100']) &
+        #         (crossed_above(dataframe['macd'], dataframe['macdsignal']))  # trigger 4 ???????
+        # ),
         'buy'] = 1
     return dataframe
 
