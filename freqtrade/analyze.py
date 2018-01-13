@@ -4,17 +4,15 @@ Functions to analyze ticker data with indicators and produce buy and sell signal
 import logging
 from datetime import timedelta
 from enum import Enum
-from typing import List, Dict
+from typing import Dict, List
 
 import arrow
 import talib.abstract as ta
 from pandas import DataFrame, to_datetime
 import numpy
 
-from freqtrade.exchange import get_ticker_history
-
-from freqtrade.vendor.qtpylib.indicators import awesome_oscillator, crossed_above, crossed_below
 import freqtrade.vendor.qtpylib.indicators as qtpylib
+from freqtrade.exchange import get_ticker_history
 
 
 logger = logging.getLogger(__name__)
@@ -367,7 +365,7 @@ def populate_buy_trend(dataframe: DataFrame) -> DataFrame:
         (
             (dataframe['adx'] > 20) &
             (dataframe['fastd'] > 0) &
-            (crossed_above(dataframe['close'], dataframe['sar'])) &
+            (qtpylib.crossed_above(dataframe['close'], dataframe['sar'])) &
             (dataframe['ema50'] > dataframe['ema100'])
         ),
         'buy'] = 1
