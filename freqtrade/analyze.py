@@ -32,8 +32,9 @@ def parse_ticker_dataframe(ticker: list) -> DataFrame:
     """
     columns = {'C': 'close', 'V': 'volume', 'O': 'open', 'H': 'high', 'L': 'low', 'T': 'date'}
     frame = DataFrame(ticker) \
-        .drop('BV', 1) \
         .rename(columns=columns)
+    if 'BV' in frame:
+        frame.drop('BV', 1, inplace=True)
     frame['date'] = to_datetime(frame['date'], utc=True, infer_datetime_format=True)
     frame.sort_values('date', inplace=True)
     return frame
@@ -84,6 +85,7 @@ def populate_indicators(dataframe: DataFrame) -> DataFrame:
     # Plus Directional Indicator / Movement
     dataframe['plus_dm'] = ta.PLUS_DM(dataframe)
     dataframe['plus_di'] = ta.PLUS_DI(dataframe)
+    dataframe['minus_di'] = ta.MINUS_DI(dataframe)
 
     # ROC
     dataframe['roc'] = ta.ROC(dataframe)
@@ -137,6 +139,7 @@ def populate_indicators(dataframe: DataFrame) -> DataFrame:
     dataframe['bb_upperband'] = bollinger['upper']
 
     # EMA - Exponential Moving Average
+    dataframe['ema3'] = ta.EMA(dataframe, timeperiod=3)
     dataframe['ema5'] = ta.EMA(dataframe, timeperiod=5)
     dataframe['ema10'] = ta.EMA(dataframe, timeperiod=10)
     dataframe['ema21'] = ta.EMA(dataframe, timeperiod=21)
@@ -465,36 +468,36 @@ def analyze_ticker(ticker_history: List[Dict]) -> DataFrame:
     return dataframe
 
 
-def get_signal(pair: str, signal: SignalType) -> bool:
+def get_signal(pair: str, interval: int) -> (bool, bool):
     """
     Calculates current signal based several technical analysis indicators
     :param pair: pair in format BTC_ANT or BTC-ANT
-    :return: True if pair is good for buying, False otherwise
+    :return: (True, False) if pair is good for buying and not for selling
     """
-    ticker_hist = get_ticker_history(pair)
+    ticker_hist = get_ticker_history(pair, interval)
     if not ticker_hist:
         logger.warning('Empty ticker history for pair %s', pair)
-        return False
+        return (False, False)
 
     try:
         dataframe = analyze_ticker(ticker_hist)
     except ValueError as ex:
         logger.warning('Unable to analyze ticker for pair %s: %s', pair, str(ex))
-        return False
+        return (False, False)
     except Exception as ex:
         logger.exception('Unexpected error when analyzing ticker for pair %s: %s', pair, str(ex))
-        return False
+        return (False, False)
 
     if dataframe.empty:
-        return False
+        return (False, False)
 
     latest = dataframe.iloc[-1]
 
     # Check if dataframe is out of date
     signal_date = arrow.get(latest['date'])
     if signal_date < arrow.now() - timedelta(minutes=10):
-        return False
+        return (False, False)
 
-    result = latest[signal.value] == 1
-    logger.debug('%s_trigger: %s (pair=%s, signal=%s)', signal.value, latest['date'], pair, result)
-    return result
+    (buy, sell) = latest[SignalType.BUY.value] == 1, latest[SignalType.SELL.value] == 1
+    logger.debug('trigger: %s (pair=%s) buy=%s sell=%s', latest['date'], pair, str(buy), str(sell))
+    return (buy, sell)
