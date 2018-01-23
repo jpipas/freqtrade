@@ -80,12 +80,22 @@ def populate_indicators(dataframe: DataFrame) -> DataFrame:
 
     # Minus Directional Indicator / Movement
     dataframe['minus_dm'] = ta.MINUS_DM(dataframe)
+    dataframe['fastminus_dm'] = ta.MINUS_DM(dataframe, timeperiod=1)
+    dataframe['longminus_dm'] = ta.MINUS_DM(dataframe, timeperiod=60)
+    dataframe['longlongminus_dm'] = ta.MINUS_DM(dataframe, timeperiod=200)
     dataframe['minus_di'] = ta.MINUS_DI(dataframe)
 
     # Plus Directional Indicator / Movement
     dataframe['plus_dm'] = ta.PLUS_DM(dataframe)
+    dataframe['fastplus_dm'] = ta.PLUS_DM(dataframe, timeperiod=1)
+    dataframe['longplus_dm'] = ta.PLUS_DM(dataframe, timeperiod=60)
+    dataframe['longlongplus_dm'] = ta.PLUS_DM(dataframe, timeperiod=200)
     dataframe['plus_di'] = ta.PLUS_DI(dataframe)
-    dataframe['minus_di'] = ta.MINUS_DI(dataframe)
+
+    dataframe['direction'] = dataframe['plus_dm'] - dataframe['minus_dm']
+    dataframe['fastdirection'] = dataframe['fastplus_dm'] - dataframe['fastminus_dm']
+    dataframe['longdirection'] = dataframe['longplus_dm'] - dataframe['longminus_dm']
+    dataframe['longlongdirection'] = dataframe['longlongplus_dm'] - dataframe['longlongminus_dm']
 
     # ROC
     dataframe['roc'] = ta.ROC(dataframe)
@@ -154,7 +164,8 @@ def populate_indicators(dataframe: DataFrame) -> DataFrame:
 
     # TEMA - Triple Exponential Moving Average
     dataframe['tema'] = ta.TEMA(dataframe, timeperiod=9)
-
+    rsiframe = DataFrame(dataframe['rsi']).rename(columns={'rsi': 'close'})
+    dataframe['emarsi'] = ta.EMA(rsiframe, timeperiod=5)
     # Cycle Indicator
     # ------------------------------------
     # Hilbert Transform Indicator - SineWave
@@ -335,17 +346,17 @@ def populate_buy_trend(dataframe: DataFrame) -> DataFrame:
         # ),
 
         # v8
-        (
-            (
-                (dataframe['adx'] > 50) |
-                (dataframe['slowadx'] > 26)
-            ) &
-            (dataframe['cci'] < -100) &
-            (dataframe['fastk-previous'] < 20) & (dataframe['fastd-previous'] < 20) &
-            (dataframe['slowfastk-previous'] < 30) & (dataframe['slowfastd-previous'] < 30) &
-            (dataframe['fastk-previous'] < dataframe['fastd-previous']) & (dataframe['fastk'] > dataframe['fastd']) &
-            (dataframe['mean-volume'] > 0.75) & (dataframe['close'] > 0.00000100)
-        ) |
+        # (
+        #     (
+        #         (dataframe['adx'] > 50) |
+        #         (dataframe['slowadx'] > 26)
+        #     ) &
+        #     (dataframe['cci'] < -100) &
+        #     (dataframe['fastk-previous'] < 20) & (dataframe['fastd-previous'] < 20) &
+        #     (dataframe['slowfastk-previous'] < 30) & (dataframe['slowfastd-previous'] < 30) &
+        #     (dataframe['fastk-previous'] < dataframe['fastd-previous']) & (dataframe['fastk'] > dataframe['fastd']) &
+        #     (dataframe['mean-volume'] > 0.75) & (dataframe['close'] > 0.00000100)
+        # ) |
 
         # v9 - Hyperopt 20000 trials
         # {
@@ -364,12 +375,35 @@ def populate_buy_trend(dataframe: DataFrame) -> DataFrame:
         #     },
         # }
         # 1099 trades. Avg profit  0.42%. Total profit  0.00457311 BTC. Avg duration 160.8 mins.
-
+        # (
+        #     (
+        #         (dataframe['adx'] > 50) |
+        #         (dataframe['slowadx'] > 26)
+        #     ) &
+        #     (dataframe['cci'] < -100) &
+        #     (dataframe['fastk-previous'] < 20) & (dataframe['fastd-previous'] < 20) &
+        #     (dataframe['slowfastk-previous'] < 30) & (dataframe['slowfastd-previous'] < 30) &
+        #     (dataframe['fastk-previous'] < dataframe['fastd-previous']) & (dataframe['fastk'] > dataframe['fastd']) &
+        #     (dataframe['mean-volume'] > 0.75) & (dataframe['close'] > 0.00000100)
+        # ) |
+        # (
+        #     (dataframe['adx'] > 20) &
+        #     (dataframe['fastd'] > 0) &
+        #     (qtpylib.crossed_above(dataframe['close'], dataframe['sar'])) &
+        #     (dataframe['ema50'] > dataframe['ema100'])
+        # ),
         (
-            (dataframe['adx'] > 20) &
-            (dataframe['fastd'] > 0) &
-            (qtpylib.crossed_above(dataframe['close'], dataframe['sar'])) &
-            (dataframe['ema50'] > dataframe['ema100'])
+
+                (dataframe['rsi'] < 47) &
+                (dataframe['rsi'] > 0) &
+                (dataframe['fastd'] < 47) &
+                (dataframe['fastd'] > 0) &
+                (dataframe['close'] > dataframe['open']) &
+                (dataframe['close'].shift(1) > dataframe['open'].shift(1)) &
+                (dataframe['close'].shift(2) > dataframe['open'].shift(2)) &
+                (dataframe['cci'] < -70) &
+                (dataframe['cci'] > -500000000)
+
         ),
         'buy'] = 1
     return dataframe
@@ -445,11 +479,32 @@ def populate_sell_trend(dataframe: DataFrame) -> DataFrame:
         # ),
 
         # v7
+        # (
+        #     (dataframe['adx'] < 25) &
+        #     ((dataframe['slowfastk'] > 70) | (dataframe['fastd'] > 70)) &
+        #     (dataframe['fastk-previous'] < dataframe['fastd-previous']) &
+        #     (dataframe['close'] > dataframe['ema5'])
+        # ),
+        # v8
         (
-            (dataframe['adx'] < 25) &
-            ((dataframe['slowfastk'] > 70) | (dataframe['fastd'] > 70)) &
-            (dataframe['fastk-previous'] < dataframe['fastd-previous']) &
-            (dataframe['close'] > dataframe['ema5'])
+            (
+                (
+                    (qtpylib.crossed_above(dataframe['rsi'], 85)) |
+                    (qtpylib.crossed_above(dataframe['fastd'], 85)) |
+                    (qtpylib.crossed_above(dataframe['fastk'], 85)) |
+                    (qtpylib.crossed_above(dataframe['cci'], 90)) |
+                    (qtpylib.crossed_above(dataframe['mfi'], 85))
+                ) &
+                (dataframe['close'] < dataframe['open']) &
+                (dataframe['close'].shift(1) < dataframe['open'].shift(1)) &
+                (dataframe['close'].shift(2) < dataframe['open'].shift(2)) &
+                (dataframe['close'].shift(3) < dataframe['open'].shift(3))
+            ) |
+            (
+                dataframe['adx'].gt(20) &
+                dataframe['macd'].gt(0) &
+                dataframe['emarsi'].ge(70)
+            )
         ),
         'sell'] = 1
     return dataframe
