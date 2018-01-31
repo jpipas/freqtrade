@@ -1,17 +1,17 @@
+"""
+IStrategy interface
+This module defines the interface to apply for strategies
+"""
+
 from abc import ABC, abstractmethod
 from pandas import DataFrame
 
 
 class IStrategy(ABC):
-    @property
-    def name(self) -> str:
-        """
-        Name of the strategy.
-        :return: str representation of the class name
-        """
-        return self.__class__.__name__
-
     """
+    Interface for freqtrade strategies
+    Defines the mandatory structure must follow any custom strategies
+
     Attributes you can use:
         minimal_roi -> Dict: Minimal ROI designed for the strategy
         stoploss -> float: optimal stoploss designed for the strategy

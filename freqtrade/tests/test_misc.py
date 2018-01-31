@@ -3,13 +3,14 @@ import argparse
 import json
 import time
 from copy import deepcopy
-
-import pytest
 from unittest.mock import MagicMock
-from jsonschema import ValidationError
 
-from freqtrade.misc import (common_args_parser, load_config, parse_args,
-                            throttle, file_dump_json, parse_timerange)
+import datetime
+import pytest
+from jsonschema import ValidationError
+from freqtrade.analyze import parse_ticker_dataframe
+from freqtrade.misc import (common_args_parser, file_dump_json, load_config,
+                            parse_args, parse_timerange, throttle, datesarray_to_datetimearray)
 
 
 def test_throttle():
@@ -124,7 +125,7 @@ def test_parse_args_backtesting_custom():
     assert call_args.refresh_pairs is True
 
 
-def test_parse_args_hyperopt_custom(mocker):
+def test_parse_args_hyperopt_custom():
     args = ['-c', 'test_conf.json', 'hyperopt', '--epochs', '20']
     call_args = parse_args(args, '')
     assert call_args.config == 'test_conf.json'
@@ -134,7 +135,7 @@ def test_parse_args_hyperopt_custom(mocker):
     assert call_args.func is not None
 
 
-def test_file_dump_json(default_conf, mocker):
+def test_file_dump_json(mocker):
     file_open = mocker.patch('freqtrade.misc.open', MagicMock())
     json_dump = mocker.patch('json.dump', MagicMock())
     file_dump_json('somefile', [1, 2, 3])
@@ -178,3 +179,18 @@ def test_load_config_missing_attributes(default_conf, mocker):
             read_data=json.dumps(conf)))
     with pytest.raises(ValidationError, match=r'.*\'exchange\' is a required property.*'):
         load_config('somefile')
+
+
+def test_datesarray_to_datetimearray(ticker_history):
+    dataframes = parse_ticker_dataframe(ticker_history)
+    dates = datesarray_to_datetimearray(dataframes['date'])
+
+    assert isinstance(dates[0], datetime.datetime)
+    assert dates[0].year == 2017
+    assert dates[0].month == 11
+    assert dates[0].day == 26
+    assert dates[0].hour == 8
+    assert dates[0].minute == 50
+
+    date_len = len(dates)
+    assert date_len == 3

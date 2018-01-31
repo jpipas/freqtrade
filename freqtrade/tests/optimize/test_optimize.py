@@ -1,16 +1,17 @@
-# pragma pylint: disable=missing-docstring,W0212
+# pragma pylint: disable=missing-docstring, protected-access, C0103
 
 import os
+import json
 import logging
-# from unittest.mock import MagicMock
+import uuid
 from shutil import copyfile
 from freqtrade import exchange, optimize
 from freqtrade.exchange import Bittrex
 from freqtrade.optimize.__init__ import make_testdata_path, download_pairs,\
-    download_backtesting_testdata, load_tickerdata_file
+    download_backtesting_testdata, load_tickerdata_file, trim_tickerlist, file_dump_json
 
 # Change this if modifying BTC_UNITEST testdatafile
-_btc_unittest_length = 13681
+_BTC_UNITTEST_LENGTH = 13681
 
 
 def _backup_file(file: str, copy_file: bool = False) -> None:
@@ -56,8 +57,7 @@ def test_load_data_30min_ticker(default_conf, ticker_history, mocker, caplog):
     assert os.path.isfile(file) is True
     assert ('freqtrade.optimize',
             logging.INFO,
-            'Download the pair: "BTC_ETH", Interval: 30 min'
-            ) not in caplog.record_tuples
+            'Download the pair: "BTC_ETH", Interval: 30 min') not in caplog.record_tuples
     _clean_test_file(file)
 
 
@@ -73,8 +73,7 @@ def test_load_data_5min_ticker(default_conf, ticker_history, mocker, caplog):
     assert os.path.isfile(file) is True
     assert ('freqtrade.optimize',
             logging.INFO,
-            'Download the pair: "BTC_ETH", Interval: 5 min'
-            ) not in caplog.record_tuples
+            'Download the pair: "BTC_ETH", Interval: 5 min') not in caplog.record_tuples
     _clean_test_file(file)
 
 
@@ -90,8 +89,7 @@ def test_load_data_1min_ticker(default_conf, ticker_history, mocker, caplog):
     assert os.path.isfile(file) is True
     assert ('freqtrade.optimize',
             logging.INFO,
-            'Download the pair: "BTC_ETH", Interval: 1 min'
-            ) not in caplog.record_tuples
+            'Download the pair: "BTC_ETH", Interval: 1 min') not in caplog.record_tuples
     _clean_test_file(file)
 
 
@@ -107,8 +105,7 @@ def test_load_data_with_new_pair_1min(default_conf, ticker_history, mocker, capl
     assert os.path.isfile(file) is True
     assert ('freqtrade.optimize',
             logging.INFO,
-            'Download the pair: "BTC_MEME", Interval: 1 min'
-            ) in caplog.record_tuples
+            'Download the pair: "BTC_MEME", Interval: 1 min') in caplog.record_tuples
     _clean_test_file(file)
 
 
@@ -174,8 +171,7 @@ def test_download_pairs_exception(default_conf, ticker_history, mocker, caplog):
     _clean_test_file(file1_5)
     assert ('freqtrade.optimize.__init__',
             logging.INFO,
-            'Failed to download the pair: "BTC-MEME", Interval: 1 min'
-            ) in caplog.record_tuples
+            'Failed to download the pair: "BTC-MEME", Interval: 1 min') in caplog.record_tuples
 
 
 def test_download_backtesting_testdata(default_conf, ticker_history, mocker):
@@ -199,7 +195,7 @@ def test_download_backtesting_testdata(default_conf, ticker_history, mocker):
     _clean_test_file(file2)
 
 
-def test_download_backtesting_testdata2(default_conf, mocker):
+def test_download_backtesting_testdata2(mocker):
     tick = [{'T': 'bar'}, {'T': 'foo'}]
     mocker.patch('freqtrade.misc.file_dump_json', return_value=None)
     mocker.patch('freqtrade.optimize.__init__.get_ticker_history', return_value=tick)
@@ -208,9 +204,14 @@ def test_download_backtesting_testdata2(default_conf, mocker):
 
 
 def test_load_tickerdata_file():
+    # 7 does not exist in either format.
     assert not load_tickerdata_file(None, 'BTC_UNITEST', 7)
+    # 1 exists only as a .json
     tickerdata = load_tickerdata_file(None, 'BTC_UNITEST', 1)
-    assert _btc_unittest_length == len(tickerdata)
+    assert _BTC_UNITTEST_LENGTH == len(tickerdata)
+    # 8 .json is empty and will fail if it's loaded. .json.gz is a copy of 1.json
+    tickerdata = load_tickerdata_file(None, 'BTC_UNITEST', 8)
+    assert _BTC_UNITTEST_LENGTH == len(tickerdata)
 
 
 def test_init(default_conf, mocker):
@@ -225,4 +226,74 @@ def test_tickerdata_to_dataframe():
     tick = load_tickerdata_file(None, 'BTC_UNITEST', 1, timerange=timerange)
     tickerlist = {'BTC_UNITEST': tick}
     data = optimize.tickerdata_to_dataframe(tickerlist)
-    assert 100 == len(data['BTC_UNITEST'])
+    assert len(data['BTC_UNITEST']) == 100
+
+
+def test_trim_tickerlist():
+    with open('freqtrade/tests/testdata/BTC_ETH-1.json') as data_file:
+        ticker_list = json.load(data_file)
+    ticker_list_len = len(ticker_list)
+
+    # Test the pattern ^(-\d+)$
+    # This pattern remove X element from the beginning
+    timerange = ((None, 'line'), None, 5)
+    ticker = trim_tickerlist(ticker_list, timerange)
+    ticker_len = len(ticker)
+
+    assert ticker_list_len == ticker_len + 5
+    assert ticker_list[0] is not ticker[0]  # The first element should be different
+    assert ticker_list[-1] is ticker[-1]  # The last element must be the same
+
+    # Test the pattern ^(\d+)-$
+    # This pattern keep X element from the end
+    timerange = (('line', None), 5, None)
+    ticker = trim_tickerlist(ticker_list, timerange)
+    ticker_len = len(ticker)
+
+    assert ticker_len == 5
+    assert ticker_list[0] is ticker[0]  # The first element must be the same
+    assert ticker_list[-1] is not ticker[-1]  # The last element should be different
+
+    # Test the pattern ^(\d+)-(\d+)$
+    # This pattern extract a window
+    timerange = (('index', 'index'), 5, 10)
+    ticker = trim_tickerlist(ticker_list, timerange)
+    ticker_len = len(ticker)
+
+    assert ticker_len == 5
+    assert ticker_list[0] is not ticker[0]  # The first element should be different
+    assert ticker_list[5] is ticker[0]  # The list starts at the index 5
+    assert ticker_list[9] is ticker[-1]  # The list ends at the index 9 (5 elements)
+
+    # Test a wrong pattern
+    # This pattern must return the list unchanged
+    timerange = ((None, None), None, 5)
+    ticker = trim_tickerlist(ticker_list, timerange)
+    ticker_len = len(ticker)
+
+    assert ticker_list_len == ticker_len
+
+
+def test_file_dump_json():
+
+    file = 'freqtrade/tests/testdata/test_{id}.json'.format(id=str(uuid.uuid4()))
+    data = {'bar': 'foo'}
+
+    # check the file we will create does not exist
+    assert os.path.isfile(file) is False
+
+    # Create the Json file
+    file_dump_json(file, data)
+
+    # Check the file was create
+    assert os.path.isfile(file) is True
+
+    # Open the Json file created and test the data is in it
+    with open(file) as data_file:
+        json_from_file = json.load(data_file)
+
+    assert 'bar' in json_from_file
+    assert json_from_file['bar'] == 'foo'
+
+    # Remove the file
+    _clean_test_file(file)

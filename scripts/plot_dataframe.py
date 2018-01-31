@@ -1,36 +1,25 @@
 #!/usr/bin/env python3
 
+import logging
 import sys
-import talib.abstract as ta
-import freqtrade.vendor.qtpylib.indicators as qtpylib
-from pandas import DataFrame
-from freqtrade import exchange, analyze
-from freqtrade.misc import common_args_parser
-from freqtrade.strategy.strategy import Strategy
-import matplotlib.pyplot as plt
-import matplotlib  # Install PYQT5 manually if you want to test this helper function
-from matplotlib.finance import candlestick2_ohlc
-from matplotlib.lines import Line2D
 
-matplotlib.use("Qt5Agg")
+import plotly.graph_objs as go
+from plotly import tools
+from plotly.offline import plot
+
+import freqtrade.analyze as analyze
+import freqtrade.misc as misc
+import freqtrade.optimize as optimize
+from freqtrade import exchange
+from freqtrade.strategy.strategy import Strategy
+
+logger = logging.getLogger(__name__)
 
 
 def plot_parse_args(args):
-    parser = common_args_parser(description='Graph utility')
-    parser.add_argument(
-        '-p', '--pair',
-        help='What currency pair',
-        dest='pair',
-        default='BTC_ETH',
-        type=str,
-    )
-    parser.add_argument(
-        '-i', '--interval',
-        help='what interval to use',
-        dest='interval',
-        default=5,
-        type=int,
-    )
+    parser = misc.common_args_parser('Graph dataframe')
+    misc.backtesting_options(parser)
+    misc.scripts_options(parser)
     return parser.parse_args(args)
 
 
@@ -40,89 +29,108 @@ def plot_analyzed_dataframe(args) -> None:
     :param pair: pair as str
     :return: None
     """
+    pair = args.pair.replace('-', '_')
+    timerange = misc.parse_timerange(args.timerange)
+
     # Init strategy
     strategy = Strategy()
     strategy.init({'strategy': args.strategy})
+    tick_interval = strategy.ticker_interval
 
-    # Init Bittrex to use public API
-    exchange._API = exchange.Bittrex({'key': '', 'secret': ''})
-    ticker = exchange.get_ticker_history(args.pair, args.interval)
-    dataframe = analyze.analyze_ticker(ticker)
+    tickers = {}
+    if args.live:
+        logger.info('Downloading pair.')
+        # Init Bittrex to use public API
+        exchange._API = exchange.Bittrex({'key': '', 'secret': ''})
+        tickers[pair] = exchange.get_ticker_history(pair, tick_interval)
+    else:
+        tickers = optimize.load_data(args.datadir, pairs=[pair],
+                                     ticker_interval=tick_interval,
+                                     refresh_pairs=False,
+                                     timerange=timerange)
+    dataframes = optimize.tickerdata_to_dataframe(tickers)
+    dataframe = dataframes[pair]
+    dataframe = analyze.populate_buy_trend(dataframe)
+    dataframe = analyze.populate_sell_trend(dataframe)
+    dates = misc.datesarray_to_datetimearray(dataframe['date'])
 
-    dataframe = populate_indicator(dataframe)
+    if (len(dataframe.index) > 750):
+        logger.warn('Ticker contained more than 750 candles, clipping.')
+    df = dataframe.tail(750)
 
-    # Two subplots sharing x axis
-    fig, (ax1, ax2, ax3) = plt.subplots(3)
-    ax1 = plt.subplot2grid((4, 1), (0, 0), rowspan=2)
-    ax2 = plt.subplot2grid((4, 1), (2, 0), sharex=ax1)
-    ax3 = plt.subplot2grid((4, 1), (3, 0), sharex=ax1)
-    fig.suptitle(args.pair + " " + str(args.interval), fontsize=14, fontweight='bold')
-    # ax1.plot(dataframe.index.values, dataframe['close'], label='close')
-    # setup marker styles
-    buy_marker = dict(linestyle=":", color='green', markersize=8)
-    sell_marker = dict(linestyle=":", color='red', markersize=8)
-    ax1.plot(dataframe.index.values, dataframe['sell_price'], 'v', **sell_marker, label='sell')
-    ax1.plot(dataframe.index.values, dataframe['buy_price'], '^', **buy_marker, label='buy')
-    ax1.plot(dataframe.index.values, dataframe['bb_lowerband'], ':', label='blower')
+    candles = go.Candlestick(x=df.date,
+                        open=df.open,
+                        high=df.high,
+                        low=df.low,
+                        close=df.close,
+                        name='Price')
 
-    candlestick2_ohlc(ax1, dataframe['open'], dataframe['high'], dataframe['low'], dataframe['close'], width=0.4,
-                      colorup='g', colordown='r', alpha=1)
-    ax1.legend()
+    df_buy = df[df['buy'] == 1]
+    buys = go.Scattergl(
+        x=df_buy.date,
+        y=df_buy.close,
+        mode='markers',
+        name='buy',
+        marker=dict(symbol='x-dot')
+    )
+    df_sell = df[df['sell'] == 1]
+    sells = go.Scattergl(
+        x=df_sell.date,
+        y=df_sell.close,
+        mode='markers',
+        name='sell',
+        marker=dict(symbol='diamond')
+    )
 
-    ax2.plot(dataframe.index.values, dataframe['adx'], label='ADX')
-    ax2.plot(dataframe.index.values, dataframe['mfi'], label='MFI')
-    ax2.plot(dataframe.index.values, dataframe['rsi'], label='RSI')
-    # ax2.plot(dataframe.index.values, [25] * len(dataframe.index.values))
-    ax2.legend()
+    bb_lower = go.Scatter(
+        x=df.date,
+        y=df.bb_lowerband,
+        name='BB lower',
+        line={'color': "transparent"},
+    )
+    bb_upper = go.Scatter(
+        x=df.date,
+        y=df.bb_upperband,
+        name='BB upper',
+        fill="tonexty",
+        fillcolor="rgba(0,176,246,0.2)", 
+        line={'color': "transparent"},
+    )
 
-    # ax3.plot(dataframe.index.values, [20] * len(dataframe.index.values))
-    ax3.plot(dataframe.index.values, dataframe['direction'], '--', label="direction")
-    # ax3.plot(dataframe.index.values, dataframe['emarsi'], label="emarsi")
-    ax3.legend()
+    macd = go.Scattergl(
+        x=df['date'],
+        y=df['macd'],
+        name='MACD'
+    )
+    macdsignal = go.Scattergl(
+        x=df['date'],
+        y=df['macdsignal'],
+        name='MACD signal'
+    )
 
-    # Fine-tune figure; make subplots close to each other and hide x ticks for
-    # all but bottom plot.
-    fig.subplots_adjust(left=0.13, bottom=0.07, right=0.98, top=0.90, wspace=0.2, hspace=0)
-    ax1.autoscale_view()
-    ax2.autoscale_view()
-    ax3.autoscale_view()
-    plt.setp([a.get_xticklabels() for a in fig.axes[:-1]], visible=False, rotation=45)
+    volume = go.Bar(
+        x=df['date'],
+        y=df['volume'],
+        name='Volume'
+    )
 
-    plt.show()
+    fig = tools.make_subplots(rows=3, cols=1, shared_xaxes=True, row_width=[1, 1, 4])
 
+    fig.append_trace(candles, 1, 1)
+    fig.append_trace(bb_lower, 1, 1)
+    fig.append_trace(bb_upper, 1, 1)
+    fig.append_trace(buys, 1, 1)
+    fig.append_trace(sells, 1, 1)
+    fig.append_trace(volume, 2, 1)
+    fig.append_trace(macd, 3, 1)
+    fig.append_trace(macdsignal, 3, 1)
 
-def populate_indicator(dataframe: DataFrame) -> DataFrame:
-    dataframe.loc[dataframe['buy'] == 1, 'buy_price'] = dataframe['close']
-    dataframe.loc[dataframe['sell'] == 1, 'sell_price'] = dataframe['close']
+    fig['layout'].update(title=args.pair)
+    fig['layout']['yaxis1'].update(title='Price')
+    fig['layout']['yaxis2'].update(title='Volume')
+    fig['layout']['yaxis3'].update(title='MACD')
 
-    # ADX
-    if 'adx' not in dataframe:
-        dataframe['adx'] = ta.ADX(dataframe)
-
-    # Bollinger bands
-    if 'bb_lowerband' not in dataframe:
-        bollinger = qtpylib.bollinger_bands(qtpylib.typical_price(dataframe), window=20, stds=2)
-        dataframe['bb_lowerband'] = bollinger['lower']
-
-    # Stoch fast
-    if 'fastd' not in dataframe or 'fastk' not in dataframe:
-        stoch_fast = ta.STOCHF(dataframe)
-        dataframe['fastd'] = stoch_fast['fastd']
-        dataframe['fastk'] = stoch_fast['fastk']
-
-    # MFI
-    if 'mfi' not in dataframe:
-        dataframe['mfi'] = ta.MFI(dataframe)
-
-    # SMA - Simple Moving Average
-    if 'sma' not in dataframe:
-        dataframe['sma'] = ta.SMA(dataframe, timeperiod=40)
-
-    # TEMA - Triple Exponential Moving Average
-    if 'tema' not in dataframe:
-        dataframe['tema'] = ta.TEMA(dataframe, timeperiod=9)
-
-    return dataframe
+    plot(fig, filename='freqtrade-plot.html')
 
 
 if __name__ == '__main__':

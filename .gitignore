@@ -8,6 +8,8 @@ logfile.txt
 hyperopt_trials.pickle
 user_data/data
 user_data/__init__.py
+freqtrade-plot.html
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
